@@ -1,0 +1,6 @@
+{
+  "name": "Nexora Commerce & Rewards",
+  "description": "Enterprise merchandise commerce marketplace with transparent order commission rewards, verified transaction ledger, and administrative audit governance.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
