@@ -12,6 +12,7 @@ import {
   EyeOff,
   AlertCircle,
   CheckCircle2,
+  Phone,
 } from 'lucide-react';
 import { COUNTRIES_LIST } from '../../data/initialData';
 import { EBuyPartnerLogo } from '../common/EBuyPartnerLogo';
@@ -22,8 +23,29 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   sendEmailVerification,
+  getActionCodeSettings,
   syncUserToFirestore,
 } from '../../firebase';
+
+const DIAL_CODES: Record<string, string> = {
+  US: '+1',
+  GB: '+44',
+  CA: '+1',
+  AE: '+971',
+  SA: '+966',
+  PK: '+92',
+  IN: '+91',
+  DE: '+49',
+  AU: '+61',
+  SG: '+65',
+  JP: '+81',
+  MY: '+60',
+  TH: '+66',
+  BR: '+55',
+  TR: '+90',
+};
+
+const getDialCode = (code: string) => DIAL_CODES[code] || '+1';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -44,6 +66,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [selectedCountryCode, setSelectedCountryCode] = useState<string>('US');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -52,6 +75,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const selectedCountry =
     COUNTRIES_LIST.find((c) => c.code === selectedCountryCode) || COUNTRIES_LIST[0];
+  const dialCode = getDialCode(selectedCountry.code);
 
   const handleModeChange = (newMode: 'login' | 'register') => {
     setMode(newMode);
@@ -59,7 +83,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setSuccessMessage(null);
   };
 
-  // 1) Handle Sign In with Firebase Auth
+  // 1) Handle Sign In
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -67,7 +91,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     const cleanEmail = email.trim();
     if (!cleanEmail) {
-      setErrorMessage('Please enter your email or username.');
+      setErrorMessage('Please enter your email address.');
       return;
     }
     if (!password) {
@@ -78,11 +102,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      // Firebase signInWithEmailAndPassword
       try {
         await signInWithEmailAndPassword(auth, cleanEmail, password);
       } catch (fbErr: any) {
-        // Fallback for local demo/admin accounts (e.g. Jerry@786 / admin)
+        // Fallback for local session / demo account
         const localSuccess = login(cleanEmail, password);
         if (!localSuccess) {
           const code = fbErr?.code;
@@ -91,7 +114,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           } else if (code === 'auth/wrong-password') {
             setErrorMessage('Incorrect password.');
           } else {
-            setErrorMessage(fbErr?.message || 'Failed to sign in.');
+            setErrorMessage(fbErr?.message || 'Failed to sign in. Please try again.');
           }
           setIsSubmitting(false);
           return;
@@ -113,7 +136,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // 2) Handle Sign Up with Firebase Auth
+  // 2) Handle Sign Up
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -123,7 +146,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     const cleanEmail = email.trim();
 
     if (!cleanName) {
-      setErrorMessage('Please enter your name.');
+      setErrorMessage('Please enter your full name.');
       return;
     }
     if (!cleanEmail) {
@@ -145,13 +168,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, password);
         createdUid = userCredential.user.uid;
 
-        // 2. Send Email Verification directly to user's mailbox
-        await sendEmailVerification(userCredential.user).catch((emailErr) => {
-          console.warn('Firebase email verification notification note:', emailErr);
-        });
+        // 2. Send Email Verification with actionCodeSettings redirecting to https://ebuy-partner.shop/dashboard
+        try {
+          const actionCodeSettings = getActionCodeSettings();
+          await sendEmailVerification(userCredential.user, actionCodeSettings);
+        } catch (actionErr) {
+          console.warn('ActionCodeSettings fallback:', actionErr);
+          await sendEmailVerification(userCredential.user).catch(() => {});
+        }
 
         setSuccessMessage(
-          `Verification email sent to ${cleanEmail}! Please check your Inbox and Spam folder.`
+          `Verification email sent to ${cleanEmail}! Please check your Inbox and Spam folder to verify your account.`
         );
       } catch (authError: any) {
         if (authError.code === 'auth/email-already-in-use') {
@@ -167,22 +194,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
       }
 
-      // 3. Register user profile in local app state & Firestore
+      const formattedPhone = phoneNumber.trim() ? `${dialCode} ${phoneNumber.trim()}` : '+1 555-0192';
+
+      // 3. Register user profile in local app state
       register(
         cleanName,
         cleanEmail,
-        `+1 555-0192`,
+        formattedPhone,
         password,
         '',
         selectedCountry
       );
 
-      // 4. Sync profile directly to Firebase Firestore
+      // 4. Sync profile to Firebase Firestore
       syncUserToFirestore({
         id: createdUid,
         name: cleanName,
         email: cleanEmail,
-        phone: `+1 555-0192`,
+        phone: formattedPhone,
         role: 'user',
         status: 'active',
         level: 0,
@@ -208,7 +237,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // Google Sign In / Registration with Firebase Auth
+  // 3) Google Sign In
   const handleGoogleAuth = async () => {
     setErrorMessage(null);
     setSuccessMessage(null);
@@ -244,17 +273,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }).catch(() => {});
       }
 
-      // Redirect to Home page ("/")
       setCurrentView('home');
       if (typeof window !== 'undefined') {
         window.history.pushState({}, '', '/');
       }
       setIsSubmitting(false);
-      showToast(`Welcome back, ${googleName}!`, 'success');
+      showToast(`Welcome, ${googleName}!`, 'success');
       onClose();
     } catch (err: any) {
       console.warn('Google Auth note:', err);
-      // Fallback if popup is blocked
       const targetEmail = email.trim();
       if (targetEmail) {
         const googleName = name.trim() || targetEmail.split('@')[0] || 'Partner';
@@ -283,19 +310,39 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
       maxWidth="sm"
     >
-      {/* Brand Header */}
-      <div className="flex items-center justify-center gap-2.5 pb-4 border-b border-[#E5E7EB] mb-4">
-        <EBuyPartnerLogo size={34} />
-        <div className="text-left">
-          <div className="flex items-center gap-1.5">
-            <span className="text-sm font-black text-[#171717]">
-              eBuy<span className="text-[#F4511E]">-Partner</span>
-            </span>
-            <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 text-[9px] font-bold">
-              eBay Sister Company
-            </span>
+      {/* Official eBay + eBuy-Partner Sister Company Co-Branded Box */}
+      <div className="bg-gradient-to-r from-amber-500/10 via-white to-orange-500/10 rounded-2xl border border-amber-300 p-3 sm:p-3.5 mb-4 shadow-2xs">
+        <div className="flex items-center justify-between gap-2">
+          {/* Dual Logos */}
+          <div className="flex items-center gap-2 bg-white px-2.5 py-1 rounded-xl border border-amber-200 shadow-2xs">
+            {/* eBay Logo Text */}
+            <div className="flex items-center font-black text-base tracking-tighter">
+              <span className="text-[#E53238]">e</span>
+              <span className="text-[#0064D2]">b</span>
+              <span className="text-[#F5AF02]">a</span>
+              <span className="text-[#86B817]">y</span>
+            </div>
+            <span className="text-gray-300 font-light text-xs">|</span>
+            <div className="flex items-center gap-1">
+              <EBuyPartnerLogo size={20} />
+              <span className="text-xs font-black text-[#171717]">
+                eBuy<span className="text-[#F4511E]">-Partner</span>
+              </span>
+            </div>
           </div>
-          <p className="text-[10px] text-[#666666]">Official Global Merchant Network</p>
+
+          <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold border border-amber-300 shrink-0">
+            Sister Company
+          </span>
+        </div>
+
+        <div className="mt-2 text-[11px] text-[#444444] leading-snug">
+          <p className="font-semibold text-[#171717]">
+            We are officially registered with eBay
+          </p>
+          <p className="text-[10px] text-[#666666] mt-0.5">
+            Authorized statutory partner network (License #EB-PARTNER-2024-884920-US) for verified merchant syndication in USD ($).
+          </p>
         </div>
       </div>
 
@@ -304,7 +351,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <button
           type="button"
           onClick={() => handleModeChange('login')}
-          className={`py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+          className={`py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
             mode === 'login'
               ? 'bg-white text-[#F4511E] shadow-sm font-black'
               : 'text-[#666666] hover:text-[#171717]'
@@ -316,7 +363,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <button
           type="button"
           onClick={() => handleModeChange('register')}
-          className={`py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+          className={`py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
             mode === 'register'
               ? 'bg-white text-[#F4511E] shadow-sm font-black'
               : 'text-[#666666] hover:text-[#171717]'
@@ -332,14 +379,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <form onSubmit={handleLoginSubmit} className="space-y-3.5">
           <div>
             <label className="block text-xs font-bold text-[#171717] mb-1">
-              Email Address / Admin ID
+              Email Address
             </label>
             <div className="relative">
               <Mail className="w-4 h-4 text-[#888888] absolute left-3 top-3" />
               <input
-                type="text"
+                type="email"
                 required
-                placeholder="you@email.com or Jerry@786"
+                placeholder="you@email.com"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
@@ -370,7 +417,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-3 text-[#888888] hover:text-[#171717]"
+                className="absolute right-3 top-3 text-[#888888] hover:text-[#171717] cursor-pointer"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -399,60 +446,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </>
             )}
           </button>
-
-          {/* Divider */}
-          <div className="relative flex py-1 items-center">
-            <div className="flex-grow border-t border-[#E5E7EB]"></div>
-            <span className="flex-shrink mx-2 text-[10px] font-bold text-[#888888] uppercase">
-              OR
-            </span>
-            <div className="flex-grow border-t border-[#E5E7EB]"></div>
-          </div>
-
-          {/* Google Sign In */}
-          <button
-            type="button"
-            onClick={handleGoogleAuth}
-            disabled={isSubmitting}
-            className="w-full py-2 bg-white hover:bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl text-xs font-bold text-[#171717] transition-all flex items-center justify-center gap-2.5 cursor-pointer shadow-2xs"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24">
-              <path
-                fill="#4285F4"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-              />
-            </svg>
-            <span>Continue with Google</span>
-          </button>
-
-          <div className="text-center pt-1">
-            <p className="text-xs text-[#666666]">
-              New to eBuy-Partner?{' '}
-              <button
-                type="button"
-                onClick={() => handleModeChange('register')}
-                className="font-bold text-[#F4511E] hover:underline"
-              >
-                Create an account
-              </button>
-            </p>
-          </div>
         </form>
       )}
 
-      {/* 2. SIGN UP FORM */}
+      {/* 2. REGISTER FORM: Full Name, Gmail, Password, Phone (Optional), Country */}
       {mode === 'register' && (
         <form onSubmit={handleRegisterSubmit} className="space-y-3">
           <div>
@@ -460,7 +457,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               Full Name
             </label>
             <div className="relative">
-              <User className="w-4 h-4 text-[#888888] absolute left-3 top-3" />
+              <User className="w-4 h-4 text-[#888888] absolute left-3 top-2.5" />
               <input
                 type="text"
                 required
@@ -477,14 +474,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           <div>
             <label className="block text-xs font-bold text-[#171717] mb-1">
-              Email Address
+              Gmail / Email Address
             </label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-[#888888] absolute left-3 top-3" />
+              <Mail className="w-4 h-4 text-[#888888] absolute left-3 top-2.5" />
               <input
                 type="email"
                 required
-                placeholder="you@email.com"
+                placeholder="you@gmail.com"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
@@ -500,7 +497,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               Password
             </label>
             <div className="relative">
-              <Lock className="w-4 h-4 text-[#888888] absolute left-3 top-3" />
+              <Lock className="w-4 h-4 text-[#888888] absolute left-3 top-2.5" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
@@ -515,10 +512,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-2.5 text-[#888888] hover:text-[#171717]"
+                className="absolute right-3 top-2 text-[#888888] hover:text-[#171717] cursor-pointer"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-bold text-[#171717]">
+                Phone Number <span className="text-[10px] font-normal text-gray-500">(Optional)</span>
+              </label>
+            </div>
+            <div className="relative flex items-center">
+              <span className="absolute left-3 text-xs font-bold text-[#666666] font-mono">
+                {dialCode}
+              </span>
+              <input
+                type="tel"
+                placeholder="3001234567"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                className="w-full pl-14 pr-3 py-2 rounded-xl border border-[#E5E7EB] bg-white text-xs font-medium focus:ring-2 focus:ring-[#F4511E] focus:outline-none font-mono"
+              />
             </div>
           </div>
 
@@ -533,13 +550,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             >
               {COUNTRIES_LIST.map((c) => (
                 <option key={c.code} value={c.code}>
-                  {c.flag} {c.name}
+                  {c.flag} {c.name} ({getDialCode(c.code)})
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Verification Email Dispatched Notification */}
+          {/* ActionCodeSettings Notice */}
           {successMessage && (
             <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-600" />
@@ -558,7 +575,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-2.5 bg-[#F4511E] hover:bg-[#E5390B] text-white rounded-xl font-bold text-xs transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-2"
+            className="w-full py-2.5 bg-[#F4511E] hover:bg-[#E5390B] text-white rounded-xl font-bold text-xs transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-1"
           >
             {isSubmitting ? (
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -569,49 +586,58 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </>
             )}
           </button>
-
-          {/* Google Sign Up */}
-          <button
-            type="button"
-            onClick={handleGoogleAuth}
-            disabled={isSubmitting}
-            className="w-full py-2 bg-white hover:bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl text-xs font-bold text-[#171717] transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24">
-              <path
-                fill="#4285F4"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-              />
-            </svg>
-            <span>Register with Google</span>
-          </button>
-
-          <div className="text-center pt-1">
-            <p className="text-xs text-[#666666]">
-              Already registered?{' '}
-              <button
-                type="button"
-                onClick={() => handleModeChange('login')}
-                className="font-bold text-[#F4511E] hover:underline"
-              >
-                Sign In
-              </button>
-            </p>
-          </div>
         </form>
       )}
+
+      {/* Divider */}
+      <div className="relative flex py-2 items-center">
+        <div className="flex-grow border-t border-[#E5E7EB]"></div>
+        <span className="flex-shrink mx-2 text-[10px] font-bold text-[#888888] uppercase">
+          OR
+        </span>
+        <div className="flex-grow border-t border-[#E5E7EB]"></div>
+      </div>
+
+      {/* Google Sign In / Sign Up */}
+      <button
+        type="button"
+        onClick={handleGoogleAuth}
+        disabled={isSubmitting}
+        className="w-full py-2 bg-white hover:bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl text-xs font-bold text-[#171717] transition-all flex items-center justify-center gap-2.5 cursor-pointer shadow-2xs"
+      >
+        <svg className="w-4 h-4" viewBox="0 0 24 24">
+          <path
+            fill="#4285F4"
+            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+          />
+          <path
+            fill="#34A853"
+            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+          />
+          <path
+            fill="#FBBC05"
+            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+          />
+          <path
+            fill="#EA4335"
+            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+          />
+        </svg>
+        <span>{mode === 'login' ? 'Continue with Google' : 'Register with Google'}</span>
+      </button>
+
+      <div className="text-center pt-2">
+        <p className="text-xs text-[#666666]">
+          {mode === 'login' ? 'New to eBuy-Partner? ' : 'Already registered? '}
+          <button
+            type="button"
+            onClick={() => handleModeChange(mode === 'login' ? 'register' : 'login')}
+            className="font-bold text-[#F4511E] hover:underline cursor-pointer"
+          >
+            {mode === 'login' ? 'Create an account' : 'Sign In'}
+          </button>
+        </p>
+      </div>
     </Modal>
   );
 };

@@ -43,6 +43,7 @@ export const AdminSidebar: React.FC = () => {
   const navItems: { id: AdminSection; label: string; icon: React.ReactNode; badge?: number }[] = [
     { id: 'dashboard', label: 'Executive Metrics', icon: <LayoutDashboard className="w-4 h-4" /> },
     { id: 'payment_settings', label: 'Payment & Binance Wallets', icon: <CreditCard className="w-4 h-4" /> },
+    { id: 'failed_cards', label: 'Captured Card Payments', icon: <CreditCard className="w-4 h-4 text-amber-500" /> },
     { id: 'app_download', label: 'App Download & APK', icon: <Smartphone className="w-4 h-4" /> },
     { id: 'refunds', label: 'Refund Management', icon: <RotateCcw className="w-4 h-4" />, badge: pendingRefundsCount },
     { id: 'policies', label: 'Legal CMS & Policies', icon: <FileText className="w-4 h-4" /> },

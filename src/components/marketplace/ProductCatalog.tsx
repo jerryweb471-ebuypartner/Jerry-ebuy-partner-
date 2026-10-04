@@ -31,6 +31,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({ onOpenCart }) =>
     completedTasksToday,
     executeProductTask,
     setSelectedLevelForModal,
+    setCurrentView,
     formatCurrency,
   } = useApp();
 
@@ -263,26 +264,30 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({ onOpenCart }) =>
                     </span>
                   </div>
 
-                  <button
-                    disabled={isQuotaReached || isLoading}
-                    onClick={() => handleAddToCartTask(prod)}
-                    className={`px-4 py-2.5 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer ${
-                      isQuotaReached
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-[#E5E7EB]'
-                        : isLoading
-                        ? 'bg-[#FF8A3D] text-white cursor-wait'
-                        : 'bg-gradient-to-r from-[#F4511E] to-[#FF6D00] hover:from-[#E5390B] hover:to-[#F4511E] text-white shadow-[0_4px_12px_rgba(244,81,30,0.25)] hover:scale-[1.02] active:scale-[0.98]'
-                    }`}
-                  >
-                    <ShoppingBag className="w-4 h-4" />
-                    <span>
-                      {isQuotaReached
-                        ? 'Quota Reached'
-                        : isLoading
-                        ? 'Verifying...'
-                        : `Add to Cart (+${formatCurrency(rewardAmount)})`}
-                    </span>
-                  </button>
+                  {isQuotaReached ? (
+                    <button
+                      onClick={() => setCurrentView('plans')}
+                      className="px-4 py-2.5 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer bg-gradient-to-r from-amber-500 to-[#F4511E] text-white hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>Upgrade Plan</span>
+                    </button>
+                  ) : (
+                    <button
+                      disabled={isLoading}
+                      onClick={() => handleAddToCartTask(prod)}
+                      className={`px-4 py-2.5 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                        isLoading
+                          ? 'bg-[#FF8A3D] text-white cursor-wait'
+                          : 'bg-gradient-to-r from-[#F4511E] to-[#FF6D00] hover:from-[#E5390B] hover:to-[#F4511E] text-white shadow-[0_4px_12px_rgba(244,81,30,0.25)] hover:scale-[1.02] active:scale-[0.98]'
+                      }`}
+                    >
+                      <ShoppingBag className="w-4 h-4" />
+                      <span>
+                        {isLoading ? 'Verifying...' : `Add to Cart (+${formatCurrency(rewardAmount)})`}
+                      </span>
+                    </button>
+                  )}
                 </div>
               </div>
             );

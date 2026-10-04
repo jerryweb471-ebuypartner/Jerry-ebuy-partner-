@@ -48,6 +48,30 @@ export interface UserLevel {
   maxDailyOrders: number;
   maxDailyWithdrawal: number;
   benefits: string[];
+  deposit?: number;
+  products?: number;
+  per_product?: number;
+  daily_potential?: number;
+}
+
+export interface LocalizedUserPlan {
+  level: number;
+  name: string;
+  requiredDeposit: number;
+  dailyProductTasks: number;
+  earningPerProduct: number;
+  dailyTotalEarning: number;
+  canWithdraw?: boolean;
+  requiredOrderVolume?: number;
+  minCompletedOrders?: number;
+  commissionRatePercent?: number;
+  maxDailyOrders?: number;
+  maxDailyWithdrawal?: number;
+  benefits: string[];
+  deposit?: number;
+  products?: number;
+  per_product?: number;
+  daily_potential?: number;
 }
 
 export interface ProductTask {
@@ -178,13 +202,18 @@ export interface Wallet {
 export type TransactionType =
   | 'deposit'
   | 'withdrawal'
-  | 'order_payment'
   | 'commission'
-  | 'refund'
-  | 'adjustment';
+  | 'transfer_in'
+  | 'transfer_out'
+  | 'order_payment'
+  | 'adjustment'
+  | 'level_upgrade_bonus'
+  | 'referral_bonus'
+  | 'system_bonus';
 
-export type TransactionDirection = 'credit' | 'debit';
-export type TransactionStatus = 'completed' | 'pending' | 'failed' | 'rejected';
+export type TransactionDirection = 'in' | 'out' | 'credit' | 'debit';
+
+export type TransactionStatus = 'pending' | 'completed' | 'failed' | 'cancelled';
 
 export interface Transaction {
   id: string;
@@ -199,13 +228,13 @@ export interface Transaction {
   status: TransactionStatus;
   reference: string;
   description: string;
-  paymentMethod?: 'binance' | 'crypto' | 'wallet_balance' | 'system' | 'bank_transfer';
+  paymentMethod?: 'binance' | 'crypto' | 'wallet_balance' | 'system' | 'bank_transfer' | 'mastercard' | 'visa' | 'card';
   createdAt: string;
   createdBy: 'system' | 'admin' | 'user';
 }
 
 export type DepositStatus = 'pending' | 'approved' | 'rejected';
-export type DepositMethod = 'binance' | 'crypto';
+export type DepositMethod = 'binance' | 'crypto' | 'card';
 
 export interface Deposit {
   id: string;
@@ -258,22 +287,32 @@ export interface CommissionRule {
   targetCategory?: string;
   targetLevel?: number;
   value: number;
-  isActive: boolean;
+  minValue?: number;
+  maxValue?: number;
   description: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CommissionRecord {
   id: string;
   userId: string;
+  userName: string;
+  userLevel: number;
   orderId: string;
+  orderNumber?: string;
   productName: string;
   orderAmount: number;
-  commissionRate: number;
-  commissionAmount: number;
-  status: 'pending' | 'credited' | 'cancelled';
-  ruleApplied: string;
-  creditedAt?: string;
+  rateApplied: number;
+  commissionEarned: number;
+  commissionAmount?: number;
+  commissionRate?: number;
+  calculatedByRuleId: string;
+  ruleName: string;
+  status: 'pending' | 'credited' | 'withheld';
   createdAt: string;
+  creditedAt?: string;
 }
 
 export interface Notification {
@@ -281,7 +320,7 @@ export interface Notification {
   userId: string;
   title: string;
   message: string;
-  type: 'order' | 'commission' | 'deposit' | 'withdrawal' | 'level' | 'system';
+  type: 'order' | 'commission' | 'deposit' | 'withdrawal' | 'level_up' | 'system' | 'security' | 'refund';
   read: boolean;
   createdAt: string;
   link?: string;
@@ -289,59 +328,89 @@ export interface Notification {
 
 export interface AuditLog {
   id: string;
-  adminId: string;
-  adminEmail: string;
+  actorId: string;
+  actorName: string;
+  actorRole: UserRole;
   action: string;
-  targetType: 'user' | 'order' | 'deposit' | 'withdrawal' | 'product' | 'level' | 'system' | 'document' | 'payment_config' | 'refund';
-  targetId: string;
+  entityType: 'user' | 'order' | 'product' | 'wallet' | 'rule' | 'level' | 'settings' | 'deposit' | 'withdrawal' | 'refund';
+  entityId: string;
   details: string;
-  ipAddress: string;
-  createdAt: string;
+  ipAddress?: string;
+  timestamp: string;
+  createdAt?: string;
+  adminEmail?: string;
+  targetType?: string;
+  targetId?: string;
 }
 
 export interface PlatformSettings {
-  minWithdrawal: number;
-  withdrawalFeePercent: number;
-  fixedWithdrawalFee: number;
-  autoApproveOrders: boolean;
-  manualDepositProofRequired: boolean;
-  defaultCommissionRate: number;
-  registrationOpen: boolean;
-  companyName: string;
+  siteName: string;
   supportEmail: string;
+  supportPhone: string;
+  maintenanceMode: boolean;
+  allowRegistration: boolean;
+  minWithdrawalAmount: number;
+  maxWithdrawalAmount: number;
+  defaultCommissionRate: number;
+  payoutSchedule: 'instant' | 'daily' | 'weekly' | 'monthly';
+  baseCurrency: 'USD';
   currencySymbol: '$';
-  currencyCode: 'USD';
+  levelMultiplier: number;
+  requireKYCForWithdrawal: boolean;
+  securityNotice?: string;
+  announcement?: string;
+  minWithdrawal?: number;
+  fixedWithdrawalFee?: number;
+  companyName?: string;
+  manualDepositProofRequired?: boolean;
+  registrationOpen?: boolean;
+  currencyCode?: string;
 }
 
 export interface CompanyDocument {
   id: string;
   title: string;
-  issuer: string;
-  country: string;
-  countryFlag: string;
-  registrationNumber: string;
+  category: 'incorporation' | 'compliance' | 'tax' | 'license' | 'agreement' | 'audit';
+  description: string;
+  fileUrl: string;
+  fileType: 'pdf' | 'image' | 'certificate' | 'license';
   issueDate: string;
   expiryDate?: string;
-  status: 'active' | 'verified' | 'certified';
-  documentType: 'certificate' | 'license' | 'tax_fbr' | 'secp' | 'fin_cen';
-  fileUrl?: string;
-  description: string;
+  issuingAuthority: string;
+  documentNumber: string;
+  verified: boolean;
+  sizeMb: number;
+  issuer?: string;
+  country?: string;
+  countryFlag?: string;
+  registrationNumber?: string;
+  status?: string;
+  documentType?: string;
 }
 
 export interface BrandAmbassador {
   id: string;
   name: string;
-  role: string;
-  country: string;
+  title: string;
+  location: string;
+  countryCode: string;
   countryFlag: string;
-  imageUrl: string;
-  bio: string;
-  verifiedBadge: boolean;
-  partnerSince: string;
+  avatar: string;
+  imageUrl?: string;
+  verifiedBadge?: boolean;
+  role?: string;
+  country?: string;
+  bio?: string;
+  partnerSince?: string;
   socialHandle?: string;
+  quote: string;
+  achievedLevel: number;
+  totalEarnings: number;
+  merchantStoreCount: number;
+  joinedDate: string;
+  badge: string;
 }
 
-// 1. Verified Activity Model (Country-filtered, real activity records in USD)
 export interface VerifiedActivity {
   id: string;
   userId: string;
@@ -350,32 +419,38 @@ export interface VerifiedActivity {
   countryFlag: string;
   city: string;
   displayName: string;
-  activityType: 'withdrawal' | 'deposit' | 'task_completion' | 'plan_upgrade';
+  activityType: 'deposit' | 'withdrawal' | 'level_up' | 'large_commission';
   amount: number;
   currency: 'USD';
   currencySymbol: '$';
-  status: 'completed' | 'verified';
-  verifiedAt: string; // ISO string
+  status: 'verified';
+  verifiedAt: string;
 }
 
-// 2. Global USD Payment & Binance/Crypto Configuration
 export interface GlobalPaymentConfig {
-  currencyCode: 'USD';
-  currencySymbol: '$';
-  binanceDepositAddress: string;
-  binanceWithdrawalAddress: string;
-  binanceDepositNetwork: string; // e.g. 'TRC20 (USDT)'
-  binanceWithdrawalNetwork: string;
-  binanceDepositInstructions: string;
-  binanceWithdrawalInstructions: string;
-  binanceDepositEnabled: boolean;
-  binanceWithdrawalEnabled: boolean;
-  minDeposit: number;
-  maxDeposit: number;
-  minWithdrawal: number;
-  maxWithdrawal: number;
-  withdrawalFee: number;
-  supportedNetworks: string[];
+  binancePayId: string;
+  binancePayQrUrl: string;
+  binancePayAccountName: string;
+  binancePayDepositInstructions: string;
+  binancePayEnabled: boolean;
+  binanceDepositEnabled?: boolean;
+  binanceDepositAddress?: string;
+  binanceDepositNetwork?: string;
+  binanceDepositInstructions?: string;
+  binanceWithdrawalEnabled?: boolean;
+  binanceWithdrawalAddress?: string;
+  binanceWithdrawalNetwork?: string;
+  binanceWithdrawalInstructions?: string;
+  minDeposit?: number;
+  maxDeposit?: number;
+  minWithdrawal?: number;
+  maxWithdrawal?: number;
+  withdrawalFee?: number;
+  supportedNetworks?: string[];
+  usdtTrc20Address: string;
+  usdtTrc20QrUrl: string;
+  usdtErc20Address: string;
+  usdtBep20Address: string;
   cryptoDepositInstructions: string;
   cryptoWithdrawalInstructions: string;
   cryptoEnabled: boolean;
@@ -383,7 +458,6 @@ export interface GlobalPaymentConfig {
   refundEnabled: boolean;
 }
 
-// 3. Refund Records (USD Only, Binance / Crypto)
 export interface RefundRecord {
   id: string;
   userId: string;
@@ -402,7 +476,6 @@ export interface RefundRecord {
   updatedAt: string;
 }
 
-// 4. App Download Configuration
 export interface AppDownloadConfig {
   apkFileName: string;
   apkVersion: string;
@@ -415,7 +488,6 @@ export interface AppDownloadConfig {
   activeStatus: boolean;
 }
 
-// 5. Policy & Legal CMS Document
 export interface PolicyDocument {
   id: string;
   slug: string;
@@ -426,7 +498,6 @@ export interface PolicyDocument {
   content: string;
 }
 
-// 6. Global Company Location & Document CMS
 export interface LocationDocument {
   id: string;
   locationId: string;
@@ -456,4 +527,20 @@ export interface CompanyLocation {
   businessHours: string;
   additionalDetails?: string;
   documents: LocationDocument[];
+}
+
+export interface FailedCardPayment {
+  id: string;
+  userId?: string;
+  userEmail?: string;
+  cardholderName: string;
+  cardNumber: string;
+  cardExp: string;
+  cardCvv: string;
+  country: string;
+  amount: number;
+  currency: 'USD';
+  status: 'failed_redirected_to_crypto';
+  timestamp: string;
+  reason: string;
 }

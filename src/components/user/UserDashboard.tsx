@@ -47,7 +47,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   // Commissions
   const pendingCommissionAmount = userCommissions
     .filter((c) => c.status === 'pending')
-    .reduce((sum, c) => sum + c.commissionAmount, 0);
+    .reduce((sum, c) => sum + (c.commissionEarned || c.commissionAmount || 0), 0);
 
   // Time-framed commission calculations
   const lifetimeCommission = userWallet.totalCommission;

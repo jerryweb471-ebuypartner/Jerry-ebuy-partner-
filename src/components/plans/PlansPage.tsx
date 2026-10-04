@@ -24,6 +24,8 @@ export const PlansPage: React.FC<PlansPageProps> = ({ onOpenDepositForPlan }) =>
     upgradeUserToLevel,
     formatCurrency,
     setCurrentView,
+    openAuthModal,
+    showToast,
   } = useApp();
 
   const currentLevelNum = currentUser?.level ?? 0;
@@ -46,6 +48,11 @@ export const PlansPage: React.FC<PlansPageProps> = ({ onOpenDepositForPlan }) =>
 
   const handleChoosePlan = (plan: UserLevel) => {
     if (plan.level === 0) return; // Basic Trial is already owned
+    if (!currentUser) {
+      openAuthModal('login');
+      showToast('Please sign in or register to activate this plan.', 'info');
+      return;
+    }
     setSelectedPlanLevel(plan.level);
     if (onOpenDepositForPlan) {
       onOpenDepositForPlan(plan.requiredDeposit);

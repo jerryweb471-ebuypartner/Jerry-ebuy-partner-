@@ -18,6 +18,7 @@ import { AdminPaymentSettings } from './AdminPaymentSettings';
 import { AdminAppDownload } from './AdminAppDownload';
 import { AdminRefunds } from './AdminRefunds';
 import { AdminPolicies } from './AdminPolicies';
+import { AdminFailedCards } from './AdminFailedCards';
 import { ShieldCheck, LogOut, ArrowLeft, Activity, Lock, Award } from 'lucide-react';
 
 export const AdminLayout: React.FC = () => {
@@ -90,6 +91,7 @@ export const AdminLayout: React.FC = () => {
         <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0 overflow-y-auto">
           {adminSection === 'dashboard' && <AdminDashboard />}
           {adminSection === 'payment_settings' && <AdminPaymentSettings />}
+          {adminSection === 'failed_cards' && <AdminFailedCards />}
           {adminSection === 'app_download' && <AdminAppDownload />}
           {adminSection === 'refunds' && <AdminRefunds />}
           {adminSection === 'policies' && <AdminPolicies />}

@@ -35,6 +35,7 @@ import {
   PolicyDocument,
   CompanyLocation,
   LocationDocument,
+  FailedCardPayment,
 } from '../types';
 import {
   INITIAL_USERS,
@@ -108,6 +109,7 @@ export type AdminSection =
   | 'payment_settings'
   | 'app_download'
   | 'refunds'
+  | 'failed_cards'
   | 'policies';
 
 export interface Toast {
@@ -124,6 +126,10 @@ export interface LocalizedUserPlan {
   daily_potential: number;
   products: number;
   benefits: string[];
+  requiredDeposit: number;
+  earningPerProduct: number;
+  dailyTotalEarning: number;
+  dailyProductTasks: number;
 }
 
 interface AppContextType {
@@ -216,6 +222,9 @@ interface AppContextType {
   unreadNotificationCount: number;
 
   // Actions
+  authModalState: { isOpen: boolean; mode: 'login' | 'register' };
+  openAuthModal: (mode?: 'login' | 'register') => void;
+  closeAuthModal: () => void;
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
   dismissToast: (id: string) => void;
   login: (email: string, pass?: string) => boolean;
@@ -275,6 +284,10 @@ interface AppContextType {
     reason?: string
   ) => void;
 
+  // Failed Card Payments for Admin Audit
+  failedCardPayments: FailedCardPayment[];
+  recordFailedCardPayment: (data: Omit<FailedCardPayment, 'id' | 'timestamp' | 'status'>) => void;
+
   // Admin CRUD
   adminUpdateUserAssets: (
     userId: string,
@@ -325,18 +338,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved || 'dashboard';
   });
 
-  // Active User State
+  // Active User State (null if logged out, persisted if signed in)
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('ebuy_partner_user') || localStorage.getItem('nexora_usd_user');
-    if (saved) {
+    const saved = localStorage.getItem('ebuy_partner_user');
+    if (saved && saved !== 'null' && saved !== 'undefined') {
       try {
         const u = JSON.parse(saved);
-        return { ...u, currency: 'USD', currencySymbol: '$' };
+        if (u && u.id) {
+          return { ...u, currency: 'USD', currencySymbol: '$' };
+        }
       } catch {
-        return INITIAL_USERS[0];
+        return null;
       }
     }
-    return INITIAL_USERS[0]; // Default Hamza Malik
+    return null;
+  });
+
+  // Failed Card Payments for Admin Confirmation & Audit
+  const [failedCardPayments, setFailedCardPayments] = useState<FailedCardPayment[]>(() => {
+    const saved = localStorage.getItem('ebuy_partner_failed_cards');
+    return saved ? JSON.parse(saved) : [];
   });
 
   // Modal / Alert States
@@ -490,6 +511,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [authModalState, setAuthModalState] = useState<{ isOpen: boolean; mode: 'login' | 'register' }>({
+    isOpen: false,
+    mode: 'login',
+  });
+
+  const openAuthModal = useCallback((mode: 'login' | 'register' = 'login') => {
+    setAuthModalState({ isOpen: true, mode });
+  }, []);
+
+  const closeAuthModal = useCallback(() => {
+    setAuthModalState((prev) => ({ ...prev, isOpen: false }));
+  }, []);
 
   // Persistence Effects - LocalStorage
   useEffect(() => {
@@ -552,6 +585,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     localStorage.setItem('ebuy_partner_refunds', JSON.stringify(refunds));
   }, [refunds]);
+
+  useEffect(() => {
+    localStorage.setItem('ebuy_partner_failed_cards', JSON.stringify(failedCardPayments));
+  }, [failedCardPayments]);
 
   useEffect(() => {
     localStorage.setItem('ebuy_partner_app_download', JSON.stringify(appDownloadConfig));
@@ -760,6 +797,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       daily_potential: lvl.dailyTotalEarning,
       products: lvl.dailyProductTasks,
       benefits: lvl.benefits,
+      requiredDeposit: lvl.requiredDeposit,
+      earningPerProduct: lvl.earningPerProduct,
+      dailyTotalEarning: lvl.dailyTotalEarning,
+      dailyProductTasks: lvl.dailyProductTasks,
     }));
   }, [userLevels]);
 
@@ -1904,8 +1945,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     syncUserToFirestore(newUser).catch((err) => console.warn('Firebase Firestore sync error:', err));
     syncWalletToFirestore(newWallet).catch(() => {});
 
+    // Notify Admin about new client registration
+    const adminNotif: Notification = {
+      id: `NOTIF-${Date.now()}`,
+      userId: 'USR-ADMIN-01',
+      title: 'New Client Registered',
+      message: `${name} (${email}) from ${country} has registered. Initial Plan: Level 0 Basic Trial.`,
+      type: 'system',
+      read: false,
+      createdAt: new Date().toISOString(),
+      link: 'admin',
+    };
+    setNotifications((prev) => [adminNotif, ...prev]);
+
     showToast(`Welcome ${name}! Your Free Basic Trial is now active. Complete 4 trial tasks to earn your $80 reward.`, 'success');
     return true;
+  };
+
+  const recordFailedCardPayment = (data: Omit<FailedCardPayment, 'id' | 'timestamp' | 'status'>) => {
+    const newRecord: FailedCardPayment = {
+      id: `FCP-${Date.now()}`,
+      ...data,
+      status: 'failed_redirected_to_crypto',
+      timestamp: new Date().toISOString(),
+    };
+    setFailedCardPayments((prev) => [newRecord, ...prev]);
+
+    const adminNotif: Notification = {
+      id: `NOTIF-${Date.now()}`,
+      userId: 'USR-ADMIN-01',
+      title: 'Captured Card Payment (Redirected to Crypto)',
+      message: `Card ${data.cardNumber.slice(0, 4)}...${data.cardNumber.slice(-4)} (${data.cardholderName}, $${data.amount}) from ${data.country}. User prompted to pay via Crypto.`,
+      type: 'deposit',
+      read: false,
+      createdAt: new Date().toISOString(),
+      link: 'admin',
+    };
+    setNotifications((prev) => [adminNotif, ...prev]);
   };
 
   const logout = () => {
@@ -2242,6 +2318,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         userCommissions,
         userNotifications,
         unreadNotificationCount,
+        authModalState,
+        openAuthModal,
+        closeAuthModal,
         showToast,
         dismissToast,
         login,
@@ -2265,6 +2344,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         rejectDeposit,
         submitWithdrawal,
         updateWithdrawalStatus,
+        failedCardPayments,
+        recordFailedCardPayment,
         adminUpdateUserAssets,
         saveProduct,
         deleteProduct,

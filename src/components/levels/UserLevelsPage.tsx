@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 export const UserLevelsPage: React.FC = () => {
-  const { getUserPlans, currentUser, formatCurrency, setCurrentView } = useApp();
+  const { getUserPlans, currentUser, formatCurrency, setCurrentView, openAuthModal, showToast } = useApp();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const userPlans = getUserPlans();
@@ -165,6 +165,11 @@ export const UserLevelsPage: React.FC = () => {
                 ) : (
                   <button
                     onClick={() => {
+                      if (!currentUser) {
+                        openAuthModal('login');
+                        showToast('Please sign in or register to activate this plan.', 'info');
+                        return;
+                      }
                       setCurrentView('plans');
                       window.location.hash = '#plans';
                     }}

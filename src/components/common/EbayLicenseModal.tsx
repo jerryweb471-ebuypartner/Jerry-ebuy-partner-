@@ -66,8 +66,8 @@ export const EbayLicenseModal: React.FC<EbayLicenseModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 lg:p-6 print:p-0 print:bg-white print:static">
-      <div className="bg-[#1C1C1E] text-white rounded-3xl max-w-5xl w-full shadow-2xl border border-neutral-700 overflow-hidden flex flex-col max-h-[95vh] print:max-h-none print:border-none print:shadow-none print:rounded-none">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-md flex items-start sm:items-center justify-center p-2 sm:p-4 lg:p-6 pt-16 sm:pt-20 pb-12 print:p-0 print:bg-white print:static">
+      <div className="bg-[#1C1C1E] text-white rounded-3xl max-w-5xl w-full shadow-2xl border border-neutral-700 overflow-hidden flex flex-col max-h-[95vh] my-auto print:max-h-none print:border-none print:shadow-none print:rounded-none">
         {/* Top Control Bar (Hidden when printing) */}
         <div className="px-4 sm:px-6 py-3.5 bg-[#141416] border-b border-neutral-800 flex flex-wrap items-center justify-between gap-3 print:hidden">
           {/* Logo & Entity Meta */}

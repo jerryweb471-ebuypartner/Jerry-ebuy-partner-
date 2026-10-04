@@ -16,11 +16,11 @@ export const CommissionPage: React.FC = () => {
 
   const totalCredited = userCommissions
     .filter((c) => c.status === 'credited')
-    .reduce((sum, c) => sum + c.commissionAmount, 0);
+    .reduce((sum, c) => sum + (c.commissionEarned || c.commissionAmount || 0), 0);
 
   const totalPending = userCommissions
     .filter((c) => c.status === 'pending')
-    .reduce((sum, c) => sum + c.commissionAmount, 0);
+    .reduce((sum, c) => sum + (c.commissionEarned || c.commissionAmount || 0), 0);
 
   return (
     <div className="space-y-8 pb-16">

@@ -92,11 +92,11 @@ export const AdminPaymentSettings: React.FC = () => {
                 Default Deposit Network
               </label>
               <select
-                value={formState.binanceDepositNetwork}
+                value={formState.binanceDepositNetwork || 'TRC20 (USDT)'}
                 onChange={(e) => setFormState({ ...formState, binanceDepositNetwork: e.target.value })}
                 className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-white font-bold text-[#171717] focus:ring-2 focus:ring-[#F4511E] focus:outline-none"
               >
-                {formState.supportedNetworks.map((n) => (
+                {(formState.supportedNetworks || ['TRC20 (USDT)', 'BEP20 (USDT)', 'ERC20 (USDT)']).map((n) => (
                   <option key={n} value={n}>{n}</option>
                 ))}
               </select>
@@ -273,7 +273,7 @@ export const AdminPaymentSettings: React.FC = () => {
             </label>
             <input
               type="text"
-              value={formState.supportedNetworks.join(', ')}
+              value={(formState.supportedNetworks || ['TRC20', 'BEP20', 'ERC20']).join(', ')}
               onChange={(e) =>
                 setFormState({
                   ...formState,

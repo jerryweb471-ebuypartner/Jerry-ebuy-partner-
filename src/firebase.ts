@@ -7,6 +7,11 @@ import {
   GoogleAuthProvider,
   sendEmailVerification,
   signOut,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  ConfirmationResult,
+  ActionCodeSettings,
+  onAuthStateChanged,
 } from 'firebase/auth';
 import {
   getFirestore,
@@ -32,7 +37,18 @@ export const db =
 
 // Initialize Auth
 export const auth = getAuth(app);
+
+// Google Auth Provider
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
+
+// ActionCodeSettings for Email Verification
+export const getActionCodeSettings = (): ActionCodeSettings => {
+  return {
+    url: 'https://ebuy-partner.shop/dashboard',
+    handleCodeInApp: true,
+  };
+};
 
 // Operation Types for error handling
 export enum OperationType {
@@ -83,13 +99,13 @@ export async function testFirestoreConnection() {
 
 // User Profile Sync Helper to Firestore
 export async function syncUserToFirestore(user: any) {
-  if (!user || !user.email) return;
+  if (!user || (!user.email && !user.phone)) return;
   const userId = user.id || auth.currentUser?.uid || `USR-${Date.now()}`;
   const docRef = doc(db, 'users', userId);
   const payload = {
     id: userId,
     name: user.name || 'Merchant Partner',
-    email: user.email,
+    email: user.email || '',
     phone: user.phone || '',
     role: user.role || 'user',
     status: user.status || 'active',
@@ -140,4 +156,8 @@ export {
   signInWithPopup,
   sendEmailVerification,
   signOut,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  onAuthStateChanged,
 };
+export type { ConfirmationResult, ActionCodeSettings };

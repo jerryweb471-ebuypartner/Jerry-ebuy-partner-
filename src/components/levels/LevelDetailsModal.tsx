@@ -20,7 +20,7 @@ export const LevelDetailsModal: React.FC<LevelDetailsModalProps> = ({
   onUpgrade,
   onOpenDeposit,
 }) => {
-  const { getUserPlans, formatCurrency } = useApp();
+  const { getUserPlans, formatCurrency, currentUser, openAuthModal, showToast } = useApp();
   if (!isOpen || !level) return null;
 
   const userPlans = getUserPlans();
@@ -36,8 +36,8 @@ export const LevelDetailsModal: React.FC<LevelDetailsModalProps> = ({
   const isPast = level.level < currentLevel;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-[18px] max-w-lg w-full shadow-2xl border border-[#E5E7EB] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-start sm:items-center justify-center p-3 sm:p-5 pt-20 sm:pt-24 pb-16">
+      <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-[#E5E7EB] overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
         {/* Modal Header */}
         <div className="p-6 border-b border-[#E5E7EB] flex items-center justify-between bg-[#FFF4ED]/60">
           <div className="flex items-center gap-3">
@@ -142,6 +142,12 @@ export const LevelDetailsModal: React.FC<LevelDetailsModalProps> = ({
           {!isCurrent && !isPast && (
             <button
               onClick={() => {
+                if (!currentUser) {
+                  onClose();
+                  openAuthModal('login');
+                  showToast('Please sign in or register to activate this plan.', 'info');
+                  return;
+                }
                 onClose();
                 onOpenDeposit(planData.deposit);
               }}

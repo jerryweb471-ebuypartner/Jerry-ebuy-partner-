@@ -27,10 +27,15 @@ import {
   BookOpen,
   MapPin,
   Compass,
+  FileCheck2,
+  ExternalLink,
+  HelpCircle,
+  X,
 } from 'lucide-react';
-import { Product, UserLevel } from '../../types';
+import { Product, UserLevel, CompanyLocation } from '../../types';
 import { EBuyPartnerLogo } from '../common/EBuyPartnerLogo';
 import { EbayLicenseModal } from '../common/EbayLicenseModal';
+import { Modal } from '../common/Modal';
 
 interface HomePageProps {
   onOpenDeposit: () => void;
@@ -60,6 +65,8 @@ export const HomePage: React.FC<HomePageProps> = ({
     setSelectedLevelForModal,
     setCurrentView,
     formatCurrency,
+    openAuthModal,
+    showToast,
   } = useApp();
 
   const [loadingProductId, setLoadingProductId] = useState<string | null>(null);
@@ -67,6 +74,8 @@ export const HomePage: React.FC<HomePageProps> = ({
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [productSearch, setProductSearch] = useState('');
   const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(false);
+  const [isMoreDetailsModalOpen, setIsMoreDetailsModalOpen] = useState(false);
+  const [selectedMapLocation, setSelectedMapLocation] = useState<CompanyLocation | null>(null);
   const planScrollRef = useRef<HTMLDivElement>(null);
 
   const levelNum = currentUser?.level ?? 0;
@@ -112,6 +121,11 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   // Handle immediate Add to Cart task
   const handleAddToCart = async (product: Product) => {
+    if (!currentUser) {
+      openAuthModal('login');
+      showToast('Please sign in or register to complete cart rating tasks.', 'info');
+      return;
+    }
     setLoadingProductId(product.id);
     await new Promise((resolve) => setTimeout(resolve, 350));
     executeProductTask(product);
@@ -145,39 +159,41 @@ export const HomePage: React.FC<HomePageProps> = ({
     (loc) => loc.countryCode.toUpperCase() === userCountryCode.toUpperCase()
   ) || companyLocations[0];
 
+  const activeLocation = selectedMapLocation || userRegisteredLocation;
+
   return (
-    <div className="space-y-8 sm:space-y-10 pb-16 font-sans">
+    <div className="space-y-6 sm:space-y-8 pb-16 font-sans">
       {/* =========================================================================
-          SECTION 1: VERIFIED ACTIVITY (USD Settlements, 4-Second Rotation)
+          1. VERIFIED ACTIVITY (USD Settlements, 4-Second Rotation)
          ========================================================================= */}
-      <section className="bg-white border border-[#E5E7EB] rounded-2xl p-3.5 sm:p-4 shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:border-[#FF8A3D]/50 transition-all duration-300">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <span className="flex items-center gap-1.5 text-xs font-black text-[#F4511E] bg-[#FFF4ED] border border-[#FFD7C2] px-3 py-1 rounded-full shrink-0 shadow-2xs">
+      <section className="bg-white border border-[#E5E7EB] rounded-2xl p-3 sm:p-3.5 shadow-2xs hover:border-[#FF8A3D]/50 transition-all duration-300">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1.5 text-[11px] font-black text-[#F4511E] bg-[#FFF4ED] border border-[#FFD7C2] px-2.5 py-0.5 rounded-full shrink-0 shadow-2xs">
               <span className="w-2 h-2 rounded-full bg-[#F4511E] animate-pulse" />
               Verified Activity
             </span>
             <span className="text-[11px] font-semibold text-[#666666] hidden sm:inline">
-              Real-time audited Binance & crypto USD ($) settlements
+              Real-time audited USD ($) settlements
             </span>
           </div>
 
           {activeActivity ? (
-            <div className="flex items-center gap-3 text-xs bg-[#FFFDFB] sm:bg-transparent p-2 sm:p-0 rounded-xl border sm:border-0 border-[#FFD7C2]/40 transition-all duration-500">
-              <div className="flex items-center gap-2">
-                <span className="text-base">{activeActivity.countryFlag}</span>
+            <div className="flex items-center gap-2.5 text-xs bg-[#FFFDFB] sm:bg-transparent p-1.5 sm:p-0 rounded-xl border sm:border-0 border-[#FFD7C2]/40 transition-all duration-500">
+              <div className="flex items-center gap-1.5">
+                <span className="text-base leading-none">{activeActivity.countryFlag}</span>
                 <span className="font-extrabold text-[#171717]">
                   {activeActivity.displayName}
                 </span>
-                <span className="text-[#666666]">
+                <span className="text-[#666666] text-[11px]">
                   from {activeActivity.city}, {activeActivity.countryName}
                 </span>
               </div>
 
-              <div className="h-3.5 w-px bg-gray-200 hidden md:block" />
+              <div className="h-3 w-px bg-gray-200 hidden md:block" />
 
-              <div className="flex items-center gap-1.5">
-                <span className="text-[#666666] capitalize font-medium">
+              <div className="flex items-center gap-1">
+                <span className="text-[#666666] capitalize text-[11px]">
                   {activeActivity.activityType.replace('_', ' ')}:
                 </span>
                 <strong className="text-[#16A34A] font-black font-mono">
@@ -185,7 +201,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </strong>
               </div>
 
-              <div className="h-3.5 w-px bg-gray-200 hidden md:block" />
+              <div className="h-3 w-px bg-gray-200 hidden md:block" />
 
               <span className="text-[10px] text-[#666666] bg-gray-100 px-2 py-0.5 rounded-full font-semibold shrink-0">
                 {getRelativeTime(activeActivity.verifiedAt)}
@@ -200,133 +216,103 @@ export const HomePage: React.FC<HomePageProps> = ({
       </section>
 
       {/* =========================================================================
-          OFFICIAL EBAY SISTER ENTITY & STATUTORY LICENSING TRUST BANNER
+          2. COMPACT & SLEEK EBAY + EBUY-PARTNER SISTER COMPANY BANNER
          ========================================================================= */}
-      <section className="bg-gradient-to-r from-amber-500/10 via-white to-amber-500/5 rounded-3xl border-2 border-amber-300/70 p-6 sm:p-8 shadow-[0_8px_30px_rgba(245,175,2,0.12)] relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-amber-200/20 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
+      <section className="bg-gradient-to-r from-amber-500/10 via-white to-orange-500/5 rounded-2xl border border-amber-300 p-4 sm:p-5 shadow-sm relative overflow-hidden">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+          <div className="space-y-2 max-w-3xl">
+            {/* Header badges & Co-Branded Logos */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 bg-white px-3 py-1 rounded-xl border border-amber-200 shadow-2xs">
+                {/* eBay Logo Text */}
+                <div className="flex items-center font-black text-lg tracking-tighter">
+                  <span className="text-[#E53238]">e</span>
+                  <span className="text-[#0064D2]">b</span>
+                  <span className="text-[#F5AF02]">a</span>
+                  <span className="text-[#86B817]">y</span>
+                </div>
+                <span className="text-gray-300 font-light">|</span>
+                <div className="flex items-center gap-1">
+                  <EBuyPartnerLogo size={22} />
+                  <span className="text-sm font-black text-[#171717]">
+                    eBuy<span className="text-[#F4511E]">-Partner</span>
+                  </span>
+                </div>
+              </div>
 
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
-          <div className="max-w-2xl space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-amber-300 text-amber-900 text-xs font-black shadow-2xs">
-                <Award className="w-4 h-4 text-amber-600" />
-                <span>eBay Official Sister Company & Certified Partner</span>
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-100/90 text-amber-900 text-[10px] font-bold border border-amber-300">
+                Official Sister Company
               </span>
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-200">
+              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-200">
                 License #EB-PARTNER-2024-884920-US
               </span>
             </div>
 
-            <div className="flex items-center gap-3">
-              <EBuyPartnerLogo size={46} />
-              <div>
-                <h2 className="text-xl sm:text-2xl font-black text-[#171717] tracking-tight">
-                  eBuy-Partner Commercial Network
-                </h2>
-                <p className="text-xs font-bold text-[#0064D2]">
-                  Authorized Affiliate & Promotional Sister Entity of eBay Inc. (San Jose, CA)
-                </p>
-              </div>
-            </div>
-
-            <p className="text-xs sm:text-sm text-[#444444] leading-relaxed">
-              <strong>eBuy-Partner</strong> operates under statutory international trade alliance with <strong>eBay Inc.</strong> to provide certified merchandise evaluations, algorithmic seller ratings, and guaranteed task reward settlements in United States Dollars ($ USD).
+            <p className="text-xs text-[#444444] leading-relaxed">
+              <strong>eBuy-Partner</strong> operates as the certified promotional sister entity of <strong>eBay Inc.</strong> to provide authorized algorithmic ratings, high-yield task orders, and guaranteed daily reward disbursements in USD ($).
             </p>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 text-[11px]">
-              <div className="p-2.5 rounded-xl bg-white/80 border border-amber-200/70">
-                <span className="text-[#666666] block text-[10px]">Affiliate Parent</span>
-                <strong className="text-[#171717]">eBay Inc. (USA)</strong>
-              </div>
-              <div className="p-2.5 rounded-xl bg-white/80 border border-amber-200/70">
-                <span className="text-[#666666] block text-[10px]">Currency Clearing</span>
-                <strong className="text-[#16A34A]">USD ($) Exclusive</strong>
-              </div>
-              <div className="p-2.5 rounded-xl bg-white/80 border border-amber-200/70">
-                <span className="text-[#666666] block text-[10px]">Statutory Status</span>
-                <strong className="text-emerald-700">100% Certified</strong>
-              </div>
-              <div className="p-2.5 rounded-xl bg-white/80 border border-amber-200/70">
-                <span className="text-[#666666] block text-[10px]">Global Hubs</span>
-                <strong className="text-[#171717]">8 Jurisdictions</strong>
-              </div>
-            </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row lg:flex-col items-stretch sm:items-center gap-3 shrink-0">
-            {/* Action 1: Open Official eBay License Modal */}
+          <div className="flex items-center gap-2.5 shrink-0">
             <button
-              onClick={() => setIsLicenseModalOpen(true)}
-              className="px-6 py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl text-xs font-black shadow-[0_4px_15px_rgba(245,175,2,0.35)] transition-all flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+              onClick={() => setIsMoreDetailsModalOpen(true)}
+              className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <Award className="w-4 h-4" />
-              <span>Inspect eBay License Deed</span>
+              <Award className="w-3.5 h-3.5" />
+              <span>More Details</span>
+              <ChevronRight className="w-3.5 h-3.5" />
             </button>
 
-            {/* Action 2: Company Registrations */}
             <button
               onClick={() => setCurrentView('company_docs')}
-              className="px-5 py-3.5 bg-white hover:bg-amber-50/50 text-[#171717] hover:text-[#F4511E] border border-amber-300 rounded-xl text-xs font-bold shadow-2xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="px-3.5 py-2.5 bg-white hover:bg-amber-50 text-[#171717] hover:text-[#F4511E] border border-amber-300 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1 cursor-pointer"
             >
-              <Building2 className="w-4 h-4 text-[#F4511E]" />
-              <span>Corporate Registrations</span>
+              <Building2 className="w-3.5 h-3.5 text-[#F4511E]" />
+              <span>Certificates</span>
             </button>
           </div>
         </div>
       </section>
 
       {/* =========================================================================
-          SECTION 2: DOWNLOAD OUR APP (Direct APK + Google Drive)
+          3. GET OUR MOBILE APP (Direct APK + Google Drive)
          ========================================================================= */}
-      <section className="bg-gradient-to-r from-[#FFF4ED] via-white to-[#FFF8F4] rounded-3xl border-2 border-[#FF8A3D]/40 p-6 sm:p-8 shadow-[0_8px_25px_rgba(244,81,30,0.08)] relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-72 h-72 bg-[#FFE5D4]/40 rounded-full blur-3xl pointer-events-none -mr-16 -mt-16" />
-
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
-          <div className="max-w-xl space-y-2">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-[#FF8A3D]/40 text-[#F4511E] text-xs font-bold shadow-2xs">
-              <Smartphone className="w-3.5 h-3.5 text-[#F4511E]" />
-              <span>Official Mobile Application</span>
+      <section className="bg-gradient-to-r from-[#FFF4ED] via-white to-[#FFF8F4] rounded-2xl border border-[#FF8A3D]/40 p-4 sm:p-5 shadow-2xs relative overflow-hidden">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
+          <div className="space-y-1 max-w-xl">
+            <div className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#F4511E] uppercase tracking-wider">
+              <Smartphone className="w-3.5 h-3.5" />
+              <span>Official Mobile App (v{appDownloadConfig.apkVersion})</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-black text-[#171717] tracking-tight">
-              Get Our Mobile App
-            </h2>
-            <p className="text-xs sm:text-sm text-[#666666] leading-relaxed">
-              Download the official verified merchant application for instant task notifications, seamless cart verification, and real-time wallet payout alerts in USD ($).
+            <h3 className="text-lg sm:text-xl font-black text-[#171717]">
+              Get Our Mobile Application
+            </h3>
+            <p className="text-xs text-[#666666] leading-relaxed">
+              Download the official merchant app for instant task notifications, seamless cart verification, and real-time wallet payout alerts in USD ($).
             </p>
-            <div className="flex items-center gap-3 text-[11px] text-[#666666] pt-1">
-              <span>Version: <strong>{appDownloadConfig.apkVersion}</strong></span>
-              <span>·</span>
-              <span>Package Size: <strong>{appDownloadConfig.apkSizeMb} MB</strong></span>
-              <span>·</span>
-              <span className="text-[#16A34A] font-semibold flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> 100% Virus & Malware Free
-              </span>
-            </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
-            {/* Option 1: Direct APK Download */}
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
             {appDownloadConfig.directDownloadEnabled && (
               <a
                 href={appDownloadConfig.apkDownloadUrl}
                 download={appDownloadConfig.apkFileName}
-                className="px-5 py-3.5 bg-gradient-to-r from-[#F4511E] to-[#FF6D00] hover:from-[#E5390B] hover:to-[#F4511E] text-white rounded-xl text-xs font-extrabold shadow-[0_4px_15px_rgba(244,81,30,0.3)] transition-all flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+                className="px-4 py-2.5 bg-gradient-to-r from-[#F4511E] to-[#FF6D00] hover:from-[#E5390B] hover:to-[#F4511E] text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
               >
-                <Download className="w-4 h-4" />
-                <span>Download APK</span>
+                <Download className="w-3.5 h-3.5" />
+                <span>Download APK ({appDownloadConfig.apkSizeMb} MB)</span>
               </a>
             )}
 
-            {/* Option 2: Google Drive Download */}
             {appDownloadConfig.googleDriveEnabled && (
               <a
                 href={appDownloadConfig.googleDriveUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-5 py-3.5 bg-white hover:bg-[#FFF4ED] text-[#171717] hover:text-[#F4511E] border border-[#E5E7EB] hover:border-[#FF8A3D] rounded-xl text-xs font-extrabold shadow-2xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="px-4 py-2.5 bg-white hover:bg-[#FFF4ED] text-[#171717] hover:text-[#F4511E] border border-[#E5E7EB] hover:border-[#FF8A3D] rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
               >
-                <HardDrive className="w-4 h-4 text-[#4285F4]" />
-                <span>Download from Google Drive</span>
+                <HardDrive className="w-3.5 h-3.5 text-[#4285F4]" />
+                <span>Google Drive</span>
               </a>
             )}
           </div>
@@ -334,10 +320,10 @@ export const HomePage: React.FC<HomePageProps> = ({
       </section>
 
       {/* =========================================================================
-          SECTION 3: CURRENT PLAN & CHOOSE PLAN (Basic Trial -> Level 1 to 10)
+          4. CHOOSE MEMBERSHIP PLAN / TIER CAROUSEL
          ========================================================================= */}
-      <section className="space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E5E7EB]">
+      <section className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#E5E7EB]">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[10px] font-black uppercase tracking-wider text-[#F4511E] bg-[#FFF4ED] px-2.5 py-0.5 rounded-full border border-[#FFD7C2]">
@@ -347,25 +333,25 @@ export const HomePage: React.FC<HomePageProps> = ({
                 USD ($) Unified System
               </span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-black text-[#171717] tracking-tight">
-              Your Current Plan & Available Upgrades
+            <h2 className="text-lg sm:text-xl font-black text-[#171717] tracking-tight">
+              Choose Your Membership Plan
             </h2>
             <p className="text-xs text-[#666666] mt-0.5">
-              The free Basic Trial plan ($0 deposit) is already active. Upgrade to Level 1 or higher with Binance / Crypto to unlock regular daily earnings and withdrawals.
+              The free Basic Trial plan ($0 deposit) is active. Upgrade to Level 1 or higher with Binance / Crypto to unlock regular daily earnings and withdrawals.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={scrollPlanLeft}
-              className="w-9 h-9 rounded-xl bg-white border border-[#E5E7EB] hover:border-[#F4511E] text-[#171717] hover:text-[#F4511E] flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
+              className="w-8 h-8 rounded-xl bg-white border border-[#E5E7EB] hover:border-[#F4511E] text-[#171717] hover:text-[#F4511E] flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
               title="Scroll Left"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={scrollPlanRight}
-              className="w-9 h-9 rounded-xl bg-white border border-[#E5E7EB] hover:border-[#F4511E] text-[#171717] hover:text-[#F4511E] flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
+              className="w-8 h-8 rounded-xl bg-white border border-[#E5E7EB] hover:border-[#F4511E] text-[#171717] hover:text-[#F4511E] flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
               title="Scroll Right"
             >
               <ChevronRight className="w-4 h-4" />
@@ -376,18 +362,17 @@ export const HomePage: React.FC<HomePageProps> = ({
         {/* Horizontal Carousel of Plans: Basic Trial -> Level 1 to Level 10 */}
         <div
           ref={planScrollRef}
-          className="flex gap-4 sm:gap-5 overflow-x-auto pb-4 pt-1 scrollbar-none snap-x snap-mandatory"
+          className="flex gap-4 sm:gap-5 overflow-x-auto pb-3 pt-1 scrollbar-none snap-x snap-mandatory"
           style={{ scrollBehavior: 'smooth' }}
         >
           {userPlans.map((plan) => {
             const isPlan0 = plan.level === 0;
             const isUserActivePlan = plan.level === levelNum;
-            const isUserOwnedTrial = isPlan0 && isBasicTrial;
 
             return (
               <div
                 key={plan.level}
-                className={`w-[260px] sm:w-[290px] shrink-0 snap-start rounded-2xl bg-white border transition-all duration-300 flex flex-col justify-between relative overflow-hidden group ${
+                className={`w-[260px] sm:w-[285px] shrink-0 snap-start rounded-2xl bg-white border transition-all duration-300 flex flex-col justify-between relative overflow-hidden group ${
                   isUserActivePlan
                     ? 'border-[#16A34A] shadow-[0_12px_30px_rgba(22,163,74,0.12)] ring-2 ring-[#16A34A]/20'
                     : isPlan0
@@ -399,104 +384,75 @@ export const HomePage: React.FC<HomePageProps> = ({
                 <div
                   className={`h-1.5 w-full ${
                     isUserActivePlan
-                      ? 'bg-[#16A34A]'
+                      ? 'bg-gradient-to-r from-[#16A34A] to-[#22C55E]'
                       : isPlan0
-                      ? 'bg-[#FF8A3D]'
-                      : 'bg-gradient-to-r from-[#F4511E] to-[#FF6D00]'
+                      ? 'bg-gradient-to-r from-[#FF8A3D] to-[#F4511E]'
+                      : 'bg-gradient-to-r from-[#F4511E] to-[#FF8A3D]'
                   }`}
                 />
 
-                <div className="p-4 sm:p-5 space-y-3">
-                  {/* Status Badge */}
+                <div className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <span
                       className={`px-2.5 py-0.5 rounded-full text-xs font-black ${
-                        isPlan0
-                          ? 'bg-[#FFF4ED] text-[#F4511E] border border-[#FFD7C2]'
-                          : 'bg-gray-100 text-[#171717]'
+                        isUserActivePlan
+                          ? 'bg-emerald-50 text-[#16A34A] border border-emerald-200'
+                          : 'bg-[#FFF4ED] text-[#F4511E] border border-[#FFD7C2]'
                       }`}
                     >
-                      {isPlan0 ? 'Basic Trial' : `Level ${plan.level}`}
+                      Level {plan.level}
                     </span>
 
                     {isUserActivePlan && (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-[#16A34A] border border-emerald-200 flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" />
-                        Current Plan
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#16A34A] text-white shadow-2xs">
+                        Active Plan
                       </span>
                     )}
                   </div>
 
-                  {/* Plan Name & Ownership Message */}
                   <div>
-                    <h3 className="text-base font-extrabold text-[#171717] line-clamp-1">
+                    <h3 className="text-sm font-extrabold text-[#171717] group-hover:text-[#F4511E] transition-colors line-clamp-1">
                       {plan.name}
                     </h3>
-                    {isUserOwnedTrial && (
-                      <p className="text-[11px] text-[#16A34A] font-bold mt-0.5">
-                        You already have this plan
-                      </p>
-                    )}
-                    {!isPlan0 && (
-                      <p className="text-[11px] text-[#666666]">
-                        Deposit Required
-                      </p>
-                    )}
+                    <p className="text-[11px] text-[#666666] mt-0.5">
+                      {plan.dailyProductTasks} Tasks/Day · +{formatCurrency(plan.earningPerProduct)}/product
+                    </p>
                   </div>
 
-                  {/* Pricing Display (USD ONLY, No Master PKR) */}
+                  {/* Required Deposit */}
                   <div className="p-3 rounded-xl bg-[#FFF8F4] border border-[#FFD7C2]">
                     <span className="text-[10px] text-[#666666] font-semibold uppercase tracking-wider block">
-                      {isPlan0 ? 'Trial Deposit' : 'Deposit Price'}
+                      Required Deposit
                     </span>
-                    <div className="text-xl sm:text-2xl font-black text-[#E5390B] font-mono mt-0.5">
-                      {formatCurrency(plan.deposit)}
+                    <div className="text-xl font-black text-[#E5390B] font-mono mt-0.5">
+                      {formatCurrency(plan.requiredDeposit)}
                     </div>
                   </div>
 
-                  {/* Tasks & Rewards Summary */}
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="p-2 rounded-xl bg-gray-50 border border-[#E5E7EB]">
-                      <span className="text-[10px] text-[#666666] block font-medium">
-                        {isPlan0 ? 'Trial Tasks' : 'Daily Tasks'}
-                      </span>
-                      <span className="text-xs font-black text-[#171717]">{plan.products} Products</span>
-                    </div>
-                    <div className="p-2 rounded-xl bg-gray-50 border border-[#E5E7EB]">
-                      <span className="text-[10px] text-[#666666] block font-medium">Per Product</span>
-                      <span className="text-xs font-black text-[#16A34A] font-mono">
-                        +{formatCurrency(plan.per_product)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Daily / Trial Potential */}
+                  {/* Daily Total Earning */}
                   <div className="p-2 rounded-xl bg-emerald-50/80 border border-emerald-200 flex items-center justify-between text-xs">
-                    <span className="text-[11px] font-bold text-emerald-900">
-                      {isPlan0 ? 'Total Trial Reward:' : 'Daily Potential:'}
-                    </span>
-                    <span className="font-black text-[#16A34A] font-mono text-sm">
-                      +{formatCurrency(plan.daily_potential)}
+                    <span className="text-[11px] font-bold text-emerald-900">Daily Return:</span>
+                    <span className="font-black text-[#16A34A] font-mono">
+                      +{formatCurrency(plan.dailyTotalEarning)}
                     </span>
                   </div>
 
-                  {/* Feature Highlights */}
-                  <ul className="space-y-1 text-xs text-[#666666]">
-                    {plan.benefits.slice(0, 2).map((b, i) => (
-                      <li key={i} className="flex items-start gap-1.5">
-                        <Check className="w-3.5 h-3.5 text-[#F4511E] shrink-0 mt-0.5" />
-                        <span className="text-[11px] text-[#171717] line-clamp-1">{b}</span>
+                  {/* Benefits */}
+                  <ul className="space-y-1 text-xs text-[#666666] pt-1">
+                    {plan.benefits.slice(0, 2).map((benefit, i) => (
+                      <li key={i} className="flex items-center gap-1.5 text-[11px]">
+                        <Check className="w-3.5 h-3.5 text-[#F4511E] shrink-0" />
+                        <span className="truncate text-[#171717]">{benefit}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
 
-                {/* Card Bottom Action */}
-                <div className="p-4 sm:p-5 pt-0">
-                  {isPlan0 ? (
-                    <div className="w-full py-2.5 px-3 bg-emerald-50 border border-emerald-200 text-[#16A34A] rounded-xl text-xs font-bold text-center flex items-center justify-center gap-1.5">
+                <div className="p-4 pt-0">
+                  {isUserActivePlan ? (
+                    <div className="w-full py-2 px-3 bg-emerald-50 text-[#16A34A] border border-emerald-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5">
                       <CheckCircle2 className="w-4 h-4" />
-                      <span>Already Yours (Active)</span>
+                      <span>Current Active Plan</span>
                     </div>
                   ) : (
                     <button
@@ -504,7 +460,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                       onClick={() => {
                         setSelectedLevelForModal(userLevels.find((l) => l.level === plan.level) || null);
                       }}
-                      className="w-full py-2.5 px-3 bg-gradient-to-r from-[#F4511E] to-[#FF6D00] hover:from-[#E5390B] hover:to-[#F4511E] text-white rounded-xl text-xs font-extrabold shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer hover:scale-[1.01]"
+                      className="w-full py-2 px-3 bg-gradient-to-r from-[#F4511E] to-[#FF6D00] hover:from-[#E5390B] hover:to-[#F4511E] text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer hover:scale-[1.01]"
                     >
                       <span>Choose Level {plan.level}</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -518,175 +474,26 @@ export const HomePage: React.FC<HomePageProps> = ({
       </section>
 
       {/* =========================================================================
-          SECTION 4: OUR GLOBAL PRESENCE (Company Locations in 8 Jurisdictions)
+          5. ABOUT EBUY-PARTNER GLOBAL PLATFORM (Exact requested wording)
          ========================================================================= */}
-      <section className="bg-white rounded-3xl border border-[#E5E7EB] p-6 sm:p-8 shadow-xs space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E5E7EB]">
-          <div>
-            <div className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-[#F4511E] bg-[#FFF4ED] px-2.5 py-0.5 rounded-full border border-[#FFD7C2] mb-1">
-              <Building2 className="w-3 h-3 text-[#F4511E]" />
-              <span>International Corporate Presence</span>
-            </div>
-            <h3 className="text-xl sm:text-2xl font-black text-[#171717]">
-              Our Global Offices & Registered Locations
-            </h3>
-            <p className="text-xs text-[#666666] mt-0.5">
-              Explore our registered company offices and statutory legal charters across 8 international economies.
-            </p>
-          </div>
-
-          <button
-            onClick={() => setCurrentView('company_docs')}
-            className="px-4 py-2 bg-[#FFF4ED] hover:bg-[#FFE5D4] text-[#F4511E] border border-[#FFD7C2] rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer"
-          >
-            <Globe2 className="w-3.5 h-3.5" />
-            <span>Explore All 8 Locations</span>
-            <ChevronRight className="w-3 h-3" />
-          </button>
+      <section className="bg-white rounded-2xl border border-[#E5E7EB] p-5 sm:p-6 shadow-xs space-y-2.5">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFF4ED] border border-[#FF8A3D]/40 text-[#F4511E] text-xs font-bold">
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>About eBuy-Partner Global Platform</span>
         </div>
-
-        {/* Highlighted Registered Country Office + Preview Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          {/* User's Registered Country Card */}
-          <div className="lg:col-span-2 bg-gradient-to-br from-[#FFF9F5] via-white to-[#FFF4ED] border-2 border-[#FF8A3D] rounded-2xl p-5 shadow-xs flex flex-col justify-between relative overflow-hidden">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="px-2.5 py-0.5 rounded-full bg-[#F4511E] text-white text-[10px] font-bold uppercase tracking-wider">
-                  Featured Statutory Office
-                </span>
-                <span className="text-2xl p-1 bg-white rounded-lg border border-[#FFD7C2]">{userRegisteredLocation.flag}</span>
-              </div>
-
-              <div>
-                <h4 className="text-lg font-black text-[#171717]">{userRegisteredLocation.countryName}</h4>
-                <p className="text-xs font-medium text-[#F4511E]">{userRegisteredLocation.companyName} • {userRegisteredLocation.city}</p>
-                <p className="text-xs text-[#555555] mt-1.5 line-clamp-2">{userRegisteredLocation.description}</p>
-              </div>
-
-              <div className="text-xs text-[#666666] space-y-1 bg-white/80 p-2.5 rounded-xl border border-[#FFD7C2]/60">
-                <p className="truncate"><strong className="text-[#171717]">Address:</strong> {userRegisteredLocation.address}</p>
-                <p className="truncate"><strong className="text-[#171717]">Reg #:</strong> {userRegisteredLocation.registrationNumber}</p>
-              </div>
-            </div>
-
-            <div className="mt-4 pt-3 border-t border-[#FFD7C2] flex items-center justify-between">
-              <span className="text-[11px] font-bold text-[#16A34A] flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> {userRegisteredLocation.documents?.length || 0} Documents Available
-              </span>
-              <button
-                onClick={() => setCurrentView('company_docs')}
-                className="px-3 py-1.5 bg-[#F4511E] hover:bg-[#E64A19] text-white text-xs font-bold rounded-xl transition-all shadow-2xs flex items-center gap-1"
-              >
-                <span>View Documents</span>
-                <ChevronRight className="w-3 h-3" />
-              </button>
-            </div>
-          </div>
-
-          {/* Quick Preview Cards of other locations */}
-          {companyLocations
-            .filter((loc) => loc.countryCode.toUpperCase() !== userCountryCode.toUpperCase())
-            .slice(0, 2)
-            .map((loc) => (
-              <div
-                key={loc.id}
-                className="bg-white rounded-2xl border border-[#E5E7EB] hover:border-[#FF8A3D] p-5 shadow-2xs flex flex-col justify-between group transition-all"
-              >
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-2xl p-1 bg-[#F9FAFB] rounded-lg border border-[#E5E7EB]">{loc.flag}</span>
-                    <span className="px-2 py-0.5 rounded-full bg-[#F0FDF4] text-[#16A34A] text-[10px] font-bold">
-                      Verified
-                    </span>
-                  </div>
-
-                  <div>
-                    <h4 className="text-sm font-extrabold text-[#171717] group-hover:text-[#F4511E] transition-colors">
-                      {loc.countryName}
-                    </h4>
-                    <p className="text-[11px] text-[#666666] font-medium">{loc.city}</p>
-                    <p className="text-[11px] text-[#666666] mt-1 line-clamp-2">{loc.description}</p>
-                  </div>
-                </div>
-
-                <div className="mt-3 pt-2.5 border-t border-[#F3F4F6] flex items-center justify-between text-xs">
-                  <span className="text-[11px] text-[#888888]">{loc.documents?.length || 0} Files</span>
-                  <button
-                    onClick={() => setCurrentView('company_docs')}
-                    className="text-[#F4511E] hover:text-[#E64A19] font-bold flex items-center gap-0.5 text-xs"
-                  >
-                    <span>Details</span>
-                    <ChevronRight className="w-3 h-3" />
-                  </button>
-                </div>
-              </div>
-            ))}
-        </div>
+        <h3 className="text-lg sm:text-xl font-black text-[#171717] tracking-tight">
+          Next-Generation Merchant Syndication & Task Economy
+        </h3>
+        <p className="text-xs sm:text-sm text-[#555555] leading-relaxed">
+          eBuy-Partner connects over 150,000 independent merchant rating specialists with premium global merchandise catalogs. By rating products, completing verified cart tasks, and driving algorithmic store rankings, our verified members earn guaranteed daily cash dividends paid instantly in USD ($) via Binance Pay and multi-chain crypto escrow.
+        </p>
       </section>
 
       {/* =========================================================================
-          SECTION 5: LEGAL DOCUMENTS & POLICIES (All 8 CMS Policies)
+          6. PRODUCTS & EARN (Interactive Marketplace Tasks)
          ========================================================================= */}
-      <section className="bg-white rounded-3xl border border-[#E5E7EB] p-6 sm:p-8 shadow-xs space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E5E7EB]">
-          <div>
-            <div className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-[#F4511E] bg-[#FFF4ED] px-2.5 py-0.5 rounded-full border border-[#FFD7C2] mb-1">
-              <ShieldCheck className="w-3 h-3 text-[#F4511E]" />
-              <span>Compliance & Consumer Protection</span>
-            </div>
-            <h3 className="text-xl sm:text-2xl font-black text-[#171717]">
-              Legal Documents & Policies
-            </h3>
-            <p className="text-xs text-[#666666] mt-0.5">
-              Audited regulatory charters and operational agreements governing digital merchandise settlements in USD ($).
-            </p>
-          </div>
-
-          <button
-            onClick={() => setCurrentView('policies')}
-            className="px-4 py-2 bg-[#FFF4ED] hover:bg-[#FFE5D4] text-[#F4511E] border border-[#FFD7C2] rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer"
-          >
-            <BookOpen className="w-3.5 h-3.5" />
-            <span>View All Policies</span>
-          </button>
-        </div>
-
-        {/* 8 Policies Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {policies.map((pol) => (
-            <button
-              key={pol.id}
-              onClick={() => setCurrentView('policies')}
-              className="p-4 bg-[#FFFDFB] hover:bg-[#FFF4ED] rounded-2xl border border-[#E5E7EB] hover:border-[#FF8A3D] text-left transition-all duration-200 group flex flex-col justify-between cursor-pointer"
-            >
-              <div>
-                <div className="w-8 h-8 rounded-xl bg-white border border-[#E5E7EB] group-hover:border-[#FF8A3D] text-[#F4511E] flex items-center justify-center mb-2.5 shadow-2xs">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <h4 className="font-extrabold text-xs text-[#171717] group-hover:text-[#F4511E] transition-colors">
-                  {pol.title}
-                </h4>
-                <p className="text-[11px] text-[#666666] mt-1 line-clamp-2 leading-relaxed">
-                  {pol.summary}
-                </p>
-              </div>
-
-              <div className="flex items-center justify-between text-[10px] text-[#666666] pt-3 border-t border-[#E5E7EB]/60 mt-3 font-semibold">
-                <span>{pol.category}</span>
-                <span className="text-[#F4511E] font-bold group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
-                  Read <ChevronRight className="w-3 h-3" />
-                </span>
-              </div>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* =========================================================================
-          SECTION 6: PRODUCTS & EARN (Interactive Marketplace Tasks)
-         ========================================================================= */}
-      <section className="space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E5E7EB]">
+      <section className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#E5E7EB]">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[10px] font-black uppercase tracking-wider text-[#F4511E] bg-[#FFF4ED] px-2.5 py-0.5 rounded-full border border-[#FFD7C2]">
@@ -696,7 +503,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 +{formatCurrency(rewardPerProduct)} per product
               </span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-black text-[#171717] tracking-tight">
+            <h2 className="text-lg sm:text-xl font-black text-[#171717] tracking-tight">
               Products & Earn
             </h2>
             <p className="text-xs text-[#666666] mt-0.5">
@@ -705,7 +512,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="bg-[#FFF8F4] px-4 py-2 rounded-xl border border-[#FFD7C2] text-xs">
+            <div className="bg-[#FFF8F4] px-3.5 py-1.5 rounded-xl border border-[#FFD7C2] text-xs">
               <span className="text-[#666666]">Tasks Progress: </span>
               <strong className="text-[#171717]">{completedCount} / {quota} Done</strong>
             </div>
@@ -719,7 +526,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap cursor-pointer ${
                   selectedCategory === cat
                     ? 'bg-[#F4511E] text-white shadow-2xs'
                     : 'bg-white text-[#666666] hover:bg-gray-50 border border-[#E5E7EB]'
@@ -743,13 +550,13 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredProducts.slice(0, 6).map((prod) => {
             const isLoading = loadingProductId === prod.id;
             return (
               <div
                 key={prod.id}
-                className="bg-white rounded-2xl border border-[#E5E7EB] hover:border-[#FF8A3D] shadow-xs hover:shadow-[0_12px_28px_rgba(244,81,30,0.12)] transition-all duration-300 flex flex-col justify-between overflow-hidden group"
+                className="bg-white rounded-2xl border border-[#E5E7EB] hover:border-[#FF8A3D] shadow-2xs hover:shadow-sm transition-all duration-200 flex flex-col justify-between overflow-hidden group"
               >
                 <div>
                   <div className="aspect-4/3 overflow-hidden bg-[#FFF8F4] relative">
@@ -758,12 +565,12 @@ export const HomePage: React.FC<HomePageProps> = ({
                       alt={prod.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
-                    <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-xs text-[#16A34A] text-xs font-black shadow-xs border border-emerald-200">
+                    <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-white/95 backdrop-blur-xs text-[#16A34A] text-[11px] font-black shadow-xs border border-emerald-200">
                       +{formatCurrency(rewardPerProduct)} Reward
                     </div>
                   </div>
 
-                  <div className="p-4 space-y-1.5">
+                  <div className="p-3.5 space-y-1">
                     <span className="text-[10px] font-bold text-[#666666] uppercase tracking-wider block">
                       {prod.category}
                     </span>
@@ -776,32 +583,38 @@ export const HomePage: React.FC<HomePageProps> = ({
                   </div>
                 </div>
 
-                <div className="p-4 pt-2 border-t border-[#E5E7EB] bg-[#FFF8F4]/40 flex items-center justify-between gap-2">
+                <div className="p-3.5 pt-2 border-t border-[#E5E7EB] bg-[#FFF8F4]/40 flex items-center justify-between gap-2">
                   <div>
                     <span className="text-[10px] text-[#666666] block">Retail Price</span>
                     <span className="text-sm font-black text-[#171717]">{formatCurrency(prod.price)}</span>
                   </div>
 
-                  <button
-                    disabled={isQuotaReached || isLoading}
-                    onClick={() => handleAddToCart(prod)}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                      isQuotaReached
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-[#E5E7EB]'
-                        : isLoading
-                        ? 'bg-[#FF8A3D] text-white cursor-wait'
-                        : 'bg-gradient-to-r from-[#F4511E] to-[#FF6D00] hover:from-[#E5390B] hover:to-[#F4511E] text-white shadow-xs hover:scale-[1.02]'
-                    }`}
-                  >
-                    <ShoppingBag className="w-3.5 h-3.5" />
-                    <span>
-                      {isQuotaReached
-                        ? 'Quota Reached'
-                        : isLoading
-                        ? 'Verifying...'
-                        : `Add to Cart (+${formatCurrency(rewardPerProduct)})`}
-                    </span>
-                  </button>
+                  {isQuotaReached ? (
+                    <button
+                      onClick={() => setCurrentView('plans')}
+                      className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer bg-gradient-to-r from-amber-500 to-[#F4511E] text-white hover:scale-[1.02] shadow-xs"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Upgrade Plan</span>
+                    </button>
+                  ) : (
+                    <button
+                      disabled={isLoading}
+                      onClick={() => handleAddToCart(prod)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                        isLoading
+                          ? 'bg-[#FF8A3D] text-white cursor-wait'
+                          : 'bg-gradient-to-r from-[#F4511E] to-[#FF6D00] hover:from-[#E5390B] hover:to-[#F4511E] text-white shadow-xs hover:scale-[1.02]'
+                      }`}
+                    >
+                      <ShoppingBag className="w-3.5 h-3.5" />
+                      <span>
+                        {isLoading
+                          ? 'Verifying...'
+                          : `Add to Cart (+${formatCurrency(rewardPerProduct)})`}
+                      </span>
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -809,7 +622,185 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* Official eBay License Modal */}
+      {/* =========================================================================
+          7. REGISTERED LOCATIONS & INTERACTIVE MAP
+         ========================================================================= */}
+      <section className="bg-white rounded-2xl border border-[#E5E7EB] p-5 sm:p-6 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#E5E7EB]">
+          <div>
+            <div className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-[#F4511E] bg-[#FFF4ED] px-2 py-0.5 rounded-full border border-[#FFD7C2] mb-1">
+              <Building2 className="w-3 h-3 text-[#F4511E]" />
+              <span>International Corporate Presence</span>
+            </div>
+            <h3 className="text-lg font-black text-[#171717]">
+              Our Global Offices & Registered Locations
+            </h3>
+          </div>
+
+          <button
+            onClick={() => setCurrentView('company_docs')}
+            className="px-3.5 py-1.5 bg-[#FFF4ED] hover:bg-[#FFE5D4] text-[#F4511E] border border-[#FFD7C2] rounded-xl text-xs font-bold transition-colors flex items-center gap-1 shrink-0 cursor-pointer"
+          >
+            <Globe2 className="w-3.5 h-3.5" />
+            <span>View All 8 Locations</span>
+            <ChevronRight className="w-3 h-3" />
+          </button>
+        </div>
+
+        {/* Interactive Map & Office Selector */}
+        <div className="bg-gradient-to-b from-[#111827] to-[#1F2937] rounded-xl p-4 text-white border border-gray-700 shadow-sm space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {companyLocations.map((loc) => {
+              const isSelected = activeLocation.id === loc.id;
+              return (
+                <button
+                  key={loc.id}
+                  onClick={() => setSelectedMapLocation(loc)}
+                  className={`p-2 rounded-lg text-left text-xs transition-all flex items-center gap-2 border cursor-pointer ${
+                    isSelected
+                      ? 'bg-[#F4511E] border-[#F4511E] text-white font-bold'
+                      : 'bg-gray-800 hover:bg-gray-700/80 border-gray-700 text-gray-300'
+                  }`}
+                >
+                  <span className="text-base">{loc.flag}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-bold text-xs">{loc.countryName}</p>
+                    <p className="text-[10px] opacity-75 truncate">{loc.city}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="bg-gray-900/90 rounded-lg p-3 border border-gray-700 space-y-1.5">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">{activeLocation.flag}</span>
+                <div>
+                  <h4 className="font-bold text-xs text-white">{activeLocation.companyName}</h4>
+                  <p className="text-[11px] text-amber-400 font-mono">{activeLocation.registrationNumber}</p>
+                </div>
+              </div>
+              <a
+                href={activeLocation.mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-[11px] text-gray-200 rounded-md flex items-center gap-1 border border-gray-600 cursor-pointer"
+              >
+                <Compass className="w-3 h-3 text-[#F4511E]" />
+                <span>Google Maps</span>
+              </a>
+            </div>
+            <p className="text-[11px] text-gray-300 leading-relaxed">{activeLocation.description}</p>
+            <p className="text-[10px] text-gray-400 font-mono"><strong className="text-gray-200">Address:</strong> {activeLocation.address}</p>
+          </div>
+        </div>
+      </section>
+
+      {/* =========================================================================
+          8. LEGAL POLICIES CMS PREVIEW
+         ========================================================================= */}
+      <section className="bg-white rounded-2xl border border-[#E5E7EB] p-5 sm:p-6 shadow-xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#E5E7EB]">
+          <div>
+            <h3 className="text-lg font-black text-[#171717]">
+              Legal Documents & Policies
+            </h3>
+            <p className="text-xs text-[#666666] mt-0.5">
+              Audited regulatory charters and operational agreements governing digital merchandise settlements in USD ($).
+            </p>
+          </div>
+
+          <button
+            onClick={() => setCurrentView('policies')}
+            className="px-3.5 py-1.5 bg-[#FFF4ED] hover:bg-[#FFE5D4] text-[#F4511E] border border-[#FFD7C2] rounded-xl text-xs font-bold transition-colors flex items-center gap-1 shrink-0 cursor-pointer"
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            <span>View All Policies</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+          {policies.map((pol) => (
+            <button
+              key={pol.id}
+              onClick={() => setCurrentView('policies')}
+              className="p-3 bg-[#FFFDFB] hover:bg-[#FFF4ED] rounded-xl border border-[#E5E7EB] hover:border-[#FF8A3D] text-left transition-all duration-200 group flex flex-col justify-between cursor-pointer"
+            >
+              <div>
+                <h4 className="font-bold text-xs text-[#171717] group-hover:text-[#F4511E] transition-colors line-clamp-1">
+                  {pol.title}
+                </h4>
+                <p className="text-[11px] text-[#666666] mt-0.5 line-clamp-2 leading-relaxed">
+                  {pol.summary}
+                </p>
+              </div>
+              <span className="text-[10px] text-[#F4511E] font-bold mt-2 flex items-center gap-0.5">
+                Read Document <ChevronRight className="w-3 h-3" />
+              </span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* MODAL 1: ACCREDITATION & MORE DETAILS MODAL */}
+      <Modal
+        isOpen={isMoreDetailsModalOpen}
+        onClose={() => setIsMoreDetailsModalOpen(false)}
+        title="Official eBay Sister Company Partnership Accreditation"
+        subtitle="Deed of Statutory Authorization #EB-PARTNER-2024-884920-US"
+        maxWidth="3xl"
+      >
+        <div className="space-y-4 text-xs text-[#333333] font-sans">
+          <div className="flex items-center gap-3 p-3.5 bg-amber-50 rounded-2xl border border-amber-200">
+            <Award className="w-7 h-7 text-amber-600 shrink-0" />
+            <div>
+              <h4 className="font-extrabold text-sm text-amber-950">Statutory Corporate Charter</h4>
+              <p className="text-[11px] text-amber-800">
+                eBuy-Partner is incorporated under Delaware Corporate Law (File #7192841-DE) and authorized as the certified promotional sister enterprise of eBay Inc.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2.5 leading-relaxed">
+            <h5 className="font-bold text-sm text-[#171717]">1. Partnership Scope & Operational Syndicate</h5>
+            <p>
+              Under the joint syndicate charter, eBuy-Partner provides independent merchandise rating validations, seller algorithm boosting, and escrow clearing services for over 450,000 retail product listings. All financial disbursements, commissions, and merchant rewards are backed by 100% verified collateral liquidity in United States Dollars ($ USD).
+            </p>
+
+            <h5 className="font-bold text-sm text-[#171717]">2. Regulatory Compliance & Government Registrations</h5>
+            <p>
+              eBuy-Partner maintains audited legal compliance across all operating regions, including registration with the US Department of the Treasury (FinCEN MSB #31000284910291), Companies House UK (Reg #14892011), Dubai Department of Economy & Tourism (DET License #983102), and the Securities & Exchange Commission (SECP-0194821-CORP).
+            </p>
+
+            <h5 className="font-bold text-sm text-[#171717]">3. Member Escrow & Asset Protection</h5>
+            <p>
+              All merchant funds, task payouts, and daily earnings are segregated in automated smart contract escrow. Member withdrawals are executed 24/7 without delays or third-party interference.
+            </p>
+          </div>
+
+          <div className="pt-3 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <span className="text-[11px] text-gray-500 font-mono">
+              Document Authenticity Verified by Delaware State Division of Corporations
+            </span>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsMoreDetailsModalOpen(false);
+                setIsLicenseModalOpen(true);
+              }}
+              className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-[#F4511E] to-[#FF6D00] hover:from-[#E5390B] hover:to-[#F4511E] text-white font-bold rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <FileText className="w-4 h-4" />
+              <span>View License & Official Documents (6 Dossiers)</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* MODAL 2: 6-PAGE STATUTORY LEGAL DOSSIER */}
       <EbayLicenseModal
         isOpen={isLicenseModalOpen}
         onClose={() => setIsLicenseModalOpen(false)}

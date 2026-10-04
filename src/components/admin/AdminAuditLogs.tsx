@@ -11,8 +11,8 @@ export const AdminAuditLogs: React.FC = () => {
       const q = searchQuery.toLowerCase();
       const matchAction = log.action.toLowerCase().includes(q);
       const matchDetails = log.details.toLowerCase().includes(q);
-      const matchTarget = log.targetId.toLowerCase().includes(q);
-      const matchEmail = log.adminEmail.toLowerCase().includes(q);
+      const matchTarget = (log.targetId || log.entityId || '').toLowerCase().includes(q);
+      const matchEmail = (log.adminEmail || log.actorName || '').toLowerCase().includes(q);
       if (!matchAction && !matchDetails && !matchTarget && !matchEmail) return false;
     }
     return true;
@@ -60,11 +60,11 @@ export const AdminAuditLogs: React.FC = () => {
                 <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-4">
                     <span className="font-mono font-semibold text-slate-900 block">{log.id}</span>
-                    <span className="text-[11px] text-slate-500 font-mono">{log.createdAt}</span>
+                    <span className="text-[11px] text-slate-500 font-mono">{log.createdAt || log.timestamp}</span>
                   </td>
 
                   <td className="px-6 py-4 font-mono text-slate-700">
-                    {log.adminEmail}
+                    {log.adminEmail || log.actorName}
                   </td>
 
                   <td className="px-6 py-4">
@@ -74,8 +74,8 @@ export const AdminAuditLogs: React.FC = () => {
                   </td>
 
                   <td className="px-6 py-4 text-slate-700 font-mono text-[11px]">
-                    <span className="capitalize text-slate-500">{log.targetType}: </span>
-                    <span className="font-semibold text-slate-800">{log.targetId}</span>
+                    <span className="capitalize text-slate-500">{log.targetType || log.entityType}: </span>
+                    <span className="font-semibold text-slate-800">{log.targetId || log.entityId}</span>
                   </td>
 
                   <td className="px-6 py-4 text-slate-600 max-w-sm leading-relaxed">

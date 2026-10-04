@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { X, Plus, Minus, Trash2, ShoppingBag, ArrowRight, Wallet as WalletIcon, AlertCircle } from 'lucide-react';
+import { X, Plus, Minus, Trash2, ShoppingBag, ArrowRight, Wallet as WalletIcon, AlertCircle, Sparkles } from 'lucide-react';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -23,7 +23,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     userWallet,
     checkoutCart,
     currentUser,
+    completedTasksToday,
+    currentLevelConfig,
     setCurrentView,
+    formatCurrency,
   } = useApp();
 
   const [paymentMethod, setPaymentMethod] = useState<'wallet_balance' | 'corporate_invoice'>('wallet_balance');
@@ -31,7 +34,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
   if (!isOpen) return null;
 
-  const hasSufficientBalance = userWallet.availableBalance >= cartTotalAmount;
+  const userLevel = currentUser?.level ?? 0;
+  const maxTasks = currentLevelConfig?.dailyProductTasks ?? (userLevel === 0 ? 4 : 3);
+  const isLimitReached = userLevel === 0 && completedTasksToday.length >= 4;
 
   const handleCheckout = async () => {
     setIsCheckingOut(true);
@@ -43,8 +48,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     }
   };
 
+  const handleGoToPlans = () => {
+    onClose();
+    setCurrentView('plans');
+  };
+
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
+    <div className="fixed inset-0 z-50 overflow-hidden font-sans">
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"
@@ -57,12 +67,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           <div className="p-5 border-b border-[#E5E7EB] flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ShoppingBag className="w-5 h-5 text-[#F4511E]" />
-              <h2 className="text-base font-bold text-[#171717]">Commercial Order Cart</h2>
+              <h2 className="text-base font-bold text-[#171717]">Commercial Task Cart</h2>
               <span className="text-xs text-[#666666] font-mono">({cart.length})</span>
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 text-[#666666] hover:text-[#171717] rounded-lg hover:bg-[#FFF4ED] transition-colors"
+              className="p-1.5 text-[#666666] hover:text-[#171717] rounded-lg hover:bg-[#FFF4ED] transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -71,20 +81,20 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           {/* Cart Items List */}
           <div className="flex-1 overflow-y-auto p-5 divide-y divide-[#E5E7EB]">
             {cart.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center p-6">
-                <ShoppingBag className="w-12 h-12 text-[#FFD7C2] stroke-[1.5] mb-3" />
-                <h3 className="text-sm font-bold text-[#171717]">Your cart is empty</h3>
-                <p className="text-xs text-[#666666] mt-1 max-w-xs leading-relaxed">
-                  Explore our verified marketplace catalog to select available inventory items.
+              <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3">
+                <ShoppingBag className="w-12 h-12 text-[#FFD7C2] stroke-[1.5]" />
+                <h3 className="text-sm font-bold text-[#171717]">Your task cart is empty</h3>
+                <p className="text-xs text-[#666666] max-w-xs leading-relaxed">
+                  Select available products in your level catalog to complete tasks and earn instant USD commission.
                 </p>
                 <button
                   onClick={() => {
                     onClose();
                     setCurrentView('marketplace');
                   }}
-                  className="mt-4 px-5 py-2.5 text-xs font-bold text-white bg-[#F4511E] hover:bg-[#E5390B] rounded-[10px] transition-colors shadow-xs"
+                  className="px-5 py-2.5 text-xs font-bold text-white bg-[#F4511E] hover:bg-[#E5390B] rounded-xl transition-colors shadow-xs cursor-pointer"
                 >
-                  Browse Catalog
+                  Browse Level {userLevel} Catalog
                 </button>
               </div>
             ) : (
@@ -103,19 +113,19 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                         </h4>
                         <button
                           onClick={() => removeFromCart(item.productId)}
-                          className="text-[#666666] hover:text-rose-600 p-0.5"
+                          className="text-[#666666] hover:text-rose-600 p-0.5 cursor-pointer"
                           title="Remove item"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                       <div className="flex items-center gap-2 mt-1 text-[11px] text-[#666666] font-mono">
-                        <span className="text-[#171717] font-bold tabular-nums font-sans">
-                          PKR {(item.product?.price ?? 0).toFixed(2)}
+                        <span className="text-[#171717] font-bold tabular-nums">
+                          {formatCurrency(item.product?.price ?? 0)}
                         </span>
                         <span>·</span>
                         <span className="text-[#16A34A] font-semibold">
-                          +PKR {(item.estimatedCommission ?? 0).toFixed(2)} reward
+                          +{formatCurrency(item.estimatedCommission ?? 20)} reward
                         </span>
                       </div>
                     </div>
@@ -124,7 +134,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                       <div className="flex items-center border border-[#E5E7EB] rounded-lg">
                         <button
                           onClick={() => updateCartQuantity(item.productId, item.quantity - 1)}
-                          className="p-1 hover:bg-[#FFF4ED] text-[#666666] transition-colors"
+                          className="p-1 hover:bg-[#FFF4ED] text-[#666666] transition-colors cursor-pointer"
                         >
                           <Minus className="w-3 h-3" />
                         </button>
@@ -133,7 +143,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                         </span>
                         <button
                           onClick={() => updateCartQuantity(item.productId, item.quantity + 1)}
-                          className="p-1 hover:bg-[#FFF4ED] text-[#666666] transition-colors"
+                          className="p-1 hover:bg-[#FFF4ED] text-[#666666] transition-colors cursor-pointer"
                         >
                           <Plus className="w-3 h-3" />
                         </button>
@@ -141,7 +151,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
                       <div className="text-right">
                         <span className="text-xs font-bold text-[#E5390B] tabular-nums font-mono">
-                          PKR {((item.product?.price ?? 0) * (item.quantity ?? 1)).toLocaleString()}
+                          {formatCurrency((item.product?.price ?? 0) * (item.quantity ?? 1))}
                         </span>
                       </div>
                     </div>
@@ -151,116 +161,58 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             )}
           </div>
 
-          {/* Checkout Footer */}
+          {/* Checkout / Upgrade Footer */}
           {cart.length > 0 && (
             <div className="p-5 border-t border-[#E5E7EB] bg-[#FFF8F4] space-y-4">
               {/* Calculations Box */}
               <div className="space-y-1.5 text-xs">
                 <div className="flex justify-between text-[#666666]">
-                  <span>Gross Order Value:</span>
-                  <span className="font-bold text-[#171717] tabular-nums font-mono">
-                    PKR {(cartTotalAmount ?? 0).toLocaleString()}
-                  </span>
+                  <span>Total Order Volume:</span>
+                  <span className="font-bold text-[#171717] font-mono">{formatCurrency(cartTotalAmount)}</span>
                 </div>
-                <div className="flex justify-between text-[#16A34A] font-semibold bg-white p-2.5 rounded-xl border border-emerald-200">
-                  <span className="flex items-center gap-1">
-                    Applicable Partner Reward:
-                  </span>
-                  <span className="font-bold tabular-nums font-mono">
-                    +PKR {(cartEstimatedCommission ?? 0).toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between text-[11px] text-[#666666] pt-1">
-                  <span>Your Available Balance:</span>
-                  <span className="font-bold text-[#E5390B] tabular-nums font-mono">
-                    PKR {(userWallet?.availableBalance ?? 0).toLocaleString()}
-                  </span>
+                <div className="flex justify-between text-[#16A34A] font-bold">
+                  <span>Estimated Total Commission:</span>
+                  <span className="font-mono">+{formatCurrency(cartEstimatedCommission)}</span>
                 </div>
               </div>
 
-              {/* Payment Method Selector */}
-              <div>
-                <label className="block text-[11px] font-bold text-[#171717] mb-1.5 uppercase tracking-wider">
-                  Payment Method
-                </label>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('wallet_balance')}
-                    className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-colors ${
-                      paymentMethod === 'wallet_balance'
-                        ? 'border-[#F4511E] bg-[#FFF4ED] text-[#F4511E] font-bold shadow-xs'
-                        : 'border-[#E5E7EB] bg-white text-[#666666] hover:border-[#FF8A3D]'
-                    }`}
-                  >
-                    <span className="font-bold">Wallet Balance</span>
-                    <span className="text-[10px] text-[#666666] mt-1">Instant deduction</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('corporate_invoice')}
-                    className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-colors ${
-                      paymentMethod === 'corporate_invoice'
-                        ? 'border-[#F4511E] bg-[#FFF4ED] text-[#F4511E] font-bold shadow-xs'
-                        : 'border-[#E5E7EB] bg-white text-[#666666] hover:border-[#FF8A3D]'
-                    }`}
-                  >
-                    <span className="font-bold">Corporate Net-30</span>
-                    <span className="text-[10px] text-[#666666] mt-1">Direct wire invoice</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Insufficient balance warning if paying with wallet */}
-              {paymentMethod === 'wallet_balance' && !hasSufficientBalance && (
-                <div className="p-3 bg-white border border-[#FFD7C2] rounded-xl text-xs text-[#171717] flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-[#E5390B] shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="font-bold text-[#E5390B]">Insufficient Available Balance</p>
-                    <p className="text-[11px] text-[#666666] mt-0.5">
-                      You need PKR {Math.max(0, (cartTotalAmount ?? 0) - (userWallet?.availableBalance ?? 0)).toLocaleString()} more.
-                    </p>
-                    <button
-                      onClick={() => {
-                        onClose();
-                        onOpenDeposit();
-                      }}
-                      className="mt-1.5 text-xs font-bold text-[#F4511E] underline hover:text-[#E5390B] inline-block"
-                    >
-                      Deposit & Select Plan Now →
-                    </button>
+              {/* Notice when Limit reached */}
+              {isLimitReached ? (
+                <div className="p-3.5 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 space-y-2 text-xs">
+                  <div className="flex items-center gap-2 font-bold">
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>Free Starter Trial Limit Completed</span>
                   </div>
-                </div>
-              )}
-
-              {/* Action Button */}
-              <button
-                onClick={handleCheckout}
-                disabled={
-                  isCheckingOut ||
-                  (paymentMethod === 'wallet_balance' && !hasSufficientBalance)
-                }
-                className="w-full h-[48px] text-xs font-bold text-white bg-[#F4511E] hover:bg-[#E5390B] disabled:opacity-50 disabled:cursor-not-allowed rounded-[10px] transition-colors shadow-sm flex items-center justify-center gap-2"
-              >
-                {isCheckingOut ? (
-                  'Verifying Order...'
-                ) : (
-                  <>
-                    <span>Confirm Order (PKR {(cartTotalAmount ?? 0).toFixed(2)})</span>
+                  <p className="text-[11px] text-amber-800 leading-relaxed">
+                    Now you need to buy / upgrade your plan to unlock permanent withdrawals and earn daily profits up to $180 - $60,000+.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleGoToPlans}
+                    className="w-full py-2.5 bg-[#F4511E] hover:bg-[#E5390B] text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Upgrade Plan Now</span>
                     <ArrowRight className="w-3.5 h-3.5" />
-                  </>
-                )}
-              </button>
-
-              <div className="text-center">
+                  </button>
+                </div>
+              ) : (
                 <button
-                  onClick={clearCart}
-                  className="text-[11px] text-[#666666] hover:text-[#F4511E] transition-colors"
+                  type="button"
+                  onClick={handleCheckout}
+                  disabled={isCheckingOut}
+                  className="w-full py-3 bg-[#F4511E] hover:bg-[#E5390B] text-white font-bold rounded-xl text-xs transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
-                  Clear all items
+                  {isCheckingOut ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <span>Complete Task Orders ({cart.length})</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </>
+                  )}
                 </button>
-              </div>
+              )}
             </div>
           )}
         </div>

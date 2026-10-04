@@ -195,7 +195,7 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
               onChange={(e) => setCryptoNetwork(e.target.value)}
               className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-white font-bold text-[#171717] text-xs focus:ring-2 focus:ring-[#F4511E] focus:outline-none"
             >
-              {paymentConfig.supportedNetworks.map((net) => (
+              {(paymentConfig.supportedNetworks || ['TRC20 (USDT)', 'BEP20 (USDT)', 'ERC20 (USDT)']).map((net) => (
                 <option key={net} value={net}>
                   {net}
                 </option>

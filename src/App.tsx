@@ -44,20 +44,19 @@ const MainLayout: React.FC = () => {
     levelAlert,
     setLevelAlert,
     upgradeUserToLevel,
+    authModalState,
+    openAuthModal,
+    closeAuthModal,
   } = useApp();
 
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isDepositOpen, setIsDepositOpen] = useState(false);
   const [depositInitialAmount, setDepositInitialAmount] = useState<number>(500);
   const [isWithdrawalOpen, setIsWithdrawalOpen] = useState(false);
-  const [authModal, setAuthModal] = useState<{ isOpen: boolean; mode: 'login' | 'register' }>({
-    isOpen: false,
-    mode: 'login',
-  });
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   const handleOpenAuth = (mode: 'login' | 'register') => {
-    setAuthModal({ isOpen: true, mode });
+    openAuthModal(mode);
   };
 
   const handleOpenDepositWithAmount = (amt: number) => {
@@ -214,9 +213,9 @@ const MainLayout: React.FC = () => {
       />
 
       <AuthModal
-        isOpen={authModal.isOpen}
-        initialMode={authModal.mode}
-        onClose={() => setAuthModal({ isOpen: false, mode: 'login' })}
+        isOpen={authModalState.isOpen}
+        initialMode={authModalState.mode}
+        onClose={closeAuthModal}
       />
 
       {/* Toast notifications */}

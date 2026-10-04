@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { HERO_IMAGE, HEADPHONE_IMAGE, WATCH_IMAGE, BAG_IMAGE } from '../../data/initialData';
 import { EBuyPartnerLogo } from '../common/EBuyPartnerLogo';
 import { EbayLicenseModal } from '../common/EbayLicenseModal';
+
+const HERO_IMAGE = 'https://images.unsplash.com/photo-1556742049-0a67e55722c0?w=1000&auto=format&fit=crop&q=80';
 import {
   ArrowRight,
   ShieldCheck,
