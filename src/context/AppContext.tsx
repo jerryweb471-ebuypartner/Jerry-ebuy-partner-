@@ -61,6 +61,13 @@ import {
   INITIAL_COMPANY_LOCATIONS,
   COUNTRIES_LIST,
 } from '../data/initialData';
+import {
+  auth,
+  syncUserToFirestore,
+  syncWalletToFirestore,
+  testFirestoreConnection,
+  signOut as firebaseSignOut,
+} from '../firebase';
 
 export type ViewType =
   | 'home'
@@ -299,13 +306,28 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Navigation State
-  const [currentViewState, setCurrentViewState] = useState<ViewType>('home');
-  const [adminSection, setAdminSection] = useState<AdminSection>('dashboard');
+  // Navigation State with full refresh persistence
+  const [currentViewState, setCurrentViewState] = useState<ViewType>(() => {
+    const saved = localStorage.getItem('ebuy_partner_current_view') as ViewType;
+    const savedUser = localStorage.getItem('ebuy_partner_user') || localStorage.getItem('nexora_usd_user');
+    if (savedUser) {
+      try {
+        const u = JSON.parse(savedUser);
+        if (u.role === 'admin') {
+          return saved === 'admin' ? 'admin' : (saved || 'admin');
+        }
+      } catch {}
+    }
+    return saved || 'home';
+  });
+  const [adminSection, setAdminSection] = useState<AdminSection>(() => {
+    const saved = localStorage.getItem('ebuy_partner_admin_section') as AdminSection;
+    return saved || 'dashboard';
+  });
 
   // Active User State
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('nexora_usd_user');
+    const saved = localStorage.getItem('ebuy_partner_user') || localStorage.getItem('nexora_usd_user');
     if (saved) {
       try {
         const u = JSON.parse(saved);
@@ -330,7 +352,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Core Data States with smart merging so custom users & wallets are never erased
   const [users, setUsers] = useState<User[]>(() => {
-    const saved = localStorage.getItem('nexora_usd_users');
+    const saved = localStorage.getItem('ebuy_partner_users') || localStorage.getItem('nexora_usd_users');
     if (saved) {
       try {
         const parsed: User[] = JSON.parse(saved);
@@ -345,17 +367,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem('nexora_usd_products');
+    const saved = localStorage.getItem('ebuy_partner_products') || localStorage.getItem('nexora_usd_products');
     return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
   });
 
   const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem('nexora_usd_orders');
+    const saved = localStorage.getItem('ebuy_partner_orders') || localStorage.getItem('nexora_usd_orders');
     return saved ? JSON.parse(saved) : INITIAL_ORDERS;
   });
 
   const [wallets, setWallets] = useState<Record<string, Wallet>>(() => {
-    const saved = localStorage.getItem('nexora_usd_wallets');
+    const saved = localStorage.getItem('ebuy_partner_wallets') || localStorage.getItem('nexora_usd_wallets');
     if (saved) {
       try {
         const parsed: Record<string, Wallet> = JSON.parse(saved);
@@ -368,102 +390,102 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    const saved = localStorage.getItem('nexora_usd_transactions');
+    const saved = localStorage.getItem('ebuy_partner_transactions') || localStorage.getItem('nexora_usd_transactions');
     return saved ? JSON.parse(saved) : INITIAL_TRANSACTIONS;
   });
 
   const [deposits, setDeposits] = useState<Deposit[]>(() => {
-    const saved = localStorage.getItem('nexora_usd_deposits');
+    const saved = localStorage.getItem('ebuy_partner_deposits') || localStorage.getItem('nexora_usd_deposits');
     return saved ? JSON.parse(saved) : INITIAL_DEPOSITS;
   });
 
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>(() => {
-    const saved = localStorage.getItem('nexora_usd_withdrawals');
+    const saved = localStorage.getItem('ebuy_partner_withdrawals') || localStorage.getItem('nexora_usd_withdrawals');
     return saved ? JSON.parse(saved) : INITIAL_WITHDRAWALS;
   });
 
   const [commissionRules, setCommissionRules] = useState<CommissionRule[]>(() => {
-    const saved = localStorage.getItem('nexora_usd_commission_rules');
+    const saved = localStorage.getItem('ebuy_partner_commission_rules') || localStorage.getItem('nexora_usd_commission_rules');
     return saved ? JSON.parse(saved) : INITIAL_COMMISSION_RULES;
   });
 
   const [commissionRecords, setCommissionRecords] = useState<CommissionRecord[]>(() => {
-    const saved = localStorage.getItem('nexora_usd_commissions');
+    const saved = localStorage.getItem('ebuy_partner_commissions') || localStorage.getItem('nexora_usd_commissions');
     return saved ? JSON.parse(saved) : INITIAL_COMMISSIONS;
   });
 
   const [notifications, setNotifications] = useState<Notification[]>(() => {
-    const saved = localStorage.getItem('nexora_usd_notifications');
+    const saved = localStorage.getItem('ebuy_partner_notifications') || localStorage.getItem('nexora_usd_notifications');
     return saved ? JSON.parse(saved) : INITIAL_NOTIFICATIONS;
   });
 
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => {
-    const saved = localStorage.getItem('nexora_usd_audit_logs');
+    const saved = localStorage.getItem('ebuy_partner_audit_logs') || localStorage.getItem('nexora_usd_audit_logs');
     return saved ? JSON.parse(saved) : INITIAL_AUDIT_LOGS;
   });
 
   const [settings, setSettings] = useState<PlatformSettings>(() => {
-    const saved = localStorage.getItem('nexora_usd_settings');
+    const saved = localStorage.getItem('ebuy_partner_settings') || localStorage.getItem('nexora_usd_settings');
     return saved ? JSON.parse(saved) : INITIAL_SETTINGS;
   });
 
   const [userLevels, setUserLevels] = useState<UserLevel[]>(() => {
-    const saved = localStorage.getItem('nexora_usd_levels');
+    const saved = localStorage.getItem('ebuy_partner_levels') || localStorage.getItem('nexora_usd_levels');
     return saved ? JSON.parse(saved) : MASTER_PLANS_USD;
   });
 
   const [rankingUsers, setRankingUsers] = useState<RankingUser[]>(() => {
-    const saved = localStorage.getItem('nexora_usd_rankings');
+    const saved = localStorage.getItem('ebuy_partner_rankings') || localStorage.getItem('nexora_usd_rankings');
     return saved ? JSON.parse(saved) : INITIAL_RANKING_USERS;
   });
 
   const [productTasks, setProductTasks] = useState<ProductTask[]>(() => {
-    const saved = localStorage.getItem('nexora_usd_product_tasks');
+    const saved = localStorage.getItem('ebuy_partner_product_tasks') || localStorage.getItem('nexora_usd_product_tasks');
     return saved ? JSON.parse(saved) : [];
   });
 
   const [companyDocuments, setCompanyDocuments] = useState<CompanyDocument[]>(() => {
-    const saved = localStorage.getItem('nexora_usd_company_docs');
+    const saved = localStorage.getItem('ebuy_partner_company_docs') || localStorage.getItem('nexora_usd_company_docs');
     return saved ? JSON.parse(saved) : INITIAL_COMPANY_DOCUMENTS;
   });
 
   const [brandAmbassadors, setBrandAmbassadors] = useState<BrandAmbassador[]>(() => {
-    const saved = localStorage.getItem('nexora_usd_brand_ambassadors');
+    const saved = localStorage.getItem('ebuy_partner_brand_ambassadors') || localStorage.getItem('nexora_usd_brand_ambassadors');
     return saved ? JSON.parse(saved) : INITIAL_BRAND_AMBASSADORS;
   });
 
   const [companyLocations, setCompanyLocations] = useState<CompanyLocation[]>(() => {
-    const saved = localStorage.getItem('nexora_usd_company_locations');
+    const saved = localStorage.getItem('ebuy_partner_company_locations') || localStorage.getItem('nexora_usd_company_locations');
     return saved ? JSON.parse(saved) : INITIAL_COMPANY_LOCATIONS;
   });
 
   const [verifiedActivities, setVerifiedActivities] = useState<VerifiedActivity[]>(() => {
-    const saved = localStorage.getItem('nexora_usd_verified_activities');
+    const saved = localStorage.getItem('ebuy_partner_verified_activities') || localStorage.getItem('nexora_usd_verified_activities');
     return saved ? JSON.parse(saved) : INITIAL_VERIFIED_ACTIVITIES;
   });
 
   const [paymentConfig, setPaymentConfig] = useState<GlobalPaymentConfig>(() => {
-    const saved = localStorage.getItem('nexora_usd_payment_config');
+    const saved = localStorage.getItem('ebuy_partner_payment_config') || localStorage.getItem('nexora_usd_payment_config');
     return saved ? JSON.parse(saved) : INITIAL_PAYMENT_CONFIG;
   });
 
   const [refunds, setRefunds] = useState<RefundRecord[]>(() => {
-    const saved = localStorage.getItem('nexora_usd_refunds');
+    const saved = localStorage.getItem('ebuy_partner_refunds') || localStorage.getItem('nexora_usd_refunds');
     return saved ? JSON.parse(saved) : INITIAL_REFUNDS;
   });
 
   const [appDownloadConfig, setAppDownloadConfig] = useState<AppDownloadConfig>(() => {
-    const saved = localStorage.getItem('nexora_usd_app_download');
+    const saved = localStorage.getItem('ebuy_partner_app_download') || localStorage.getItem('nexora_usd_app_download');
     return saved ? JSON.parse(saved) : INITIAL_APP_DOWNLOAD_CONFIG;
   });
 
   const [policies, setPolicies] = useState<PolicyDocument[]>(() => {
-    const saved = localStorage.getItem('nexora_usd_policies');
+    const saved = localStorage.getItem('ebuy_partner_policies') || localStorage.getItem('nexora_usd_policies');
     return saved ? JSON.parse(saved) : INITIAL_POLICIES;
   });
 
   const [cart, setCart] = useState<CartItem[]>(() => {
-    const saved = localStorage.getItem('nexora_usd_cart');
+    const saved = localStorage.getItem('ebuy_partner_cart') || localStorage.getItem('nexora_usd_cart');
     return saved ? JSON.parse(saved) : [];
   });
 
@@ -472,83 +494,104 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Persistence Effects - LocalStorage
   useEffect(() => {
     if (currentUser) {
-      localStorage.setItem('nexora_usd_user', JSON.stringify(currentUser));
+      localStorage.setItem('ebuy_partner_user', JSON.stringify(currentUser));
     } else {
-      localStorage.removeItem('nexora_usd_user');
+      localStorage.removeItem('ebuy_partner_user');
     }
   }, [currentUser]);
 
+  // Test connection to Firestore on initial boot (Skill constraint)
   useEffect(() => {
-    localStorage.setItem('nexora_usd_users', JSON.stringify(users));
+    testFirestoreConnection();
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('ebuy_partner_users', JSON.stringify(users));
   }, [users]);
 
   useEffect(() => {
-    localStorage.setItem('nexora_usd_products', JSON.stringify(products));
+    localStorage.setItem('ebuy_partner_products', JSON.stringify(products));
   }, [products]);
 
   useEffect(() => {
-    localStorage.setItem('nexora_usd_orders', JSON.stringify(orders));
+    localStorage.setItem('ebuy_partner_orders', JSON.stringify(orders));
   }, [orders]);
 
   useEffect(() => {
-    localStorage.setItem('nexora_usd_wallets', JSON.stringify(wallets));
+    localStorage.setItem('ebuy_partner_wallets', JSON.stringify(wallets));
   }, [wallets]);
 
   useEffect(() => {
-    localStorage.setItem('nexora_usd_transactions', JSON.stringify(transactions));
+    localStorage.setItem('ebuy_partner_transactions', JSON.stringify(transactions));
   }, [transactions]);
 
   useEffect(() => {
-    localStorage.setItem('nexora_usd_deposits', JSON.stringify(deposits));
+    localStorage.setItem('ebuy_partner_deposits', JSON.stringify(deposits));
   }, [deposits]);
 
   useEffect(() => {
-    localStorage.setItem('nexora_usd_withdrawals', JSON.stringify(withdrawals));
+    localStorage.setItem('ebuy_partner_withdrawals', JSON.stringify(withdrawals));
   }, [withdrawals]);
 
   useEffect(() => {
-    localStorage.setItem('nexora_usd_levels', JSON.stringify(userLevels));
+    localStorage.setItem('ebuy_partner_levels', JSON.stringify(userLevels));
   }, [userLevels]);
 
   useEffect(() => {
-    localStorage.setItem('nexora_usd_product_tasks', JSON.stringify(productTasks));
+    localStorage.setItem('ebuy_partner_product_tasks', JSON.stringify(productTasks));
   }, [productTasks]);
 
   useEffect(() => {
-    localStorage.setItem('nexora_usd_verified_activities', JSON.stringify(verifiedActivities));
+    localStorage.setItem('ebuy_partner_verified_activities', JSON.stringify(verifiedActivities));
   }, [verifiedActivities]);
 
   useEffect(() => {
-    localStorage.setItem('nexora_usd_payment_config', JSON.stringify(paymentConfig));
+    localStorage.setItem('ebuy_partner_payment_config', JSON.stringify(paymentConfig));
   }, [paymentConfig]);
 
   useEffect(() => {
-    localStorage.setItem('nexora_usd_refunds', JSON.stringify(refunds));
+    localStorage.setItem('ebuy_partner_refunds', JSON.stringify(refunds));
   }, [refunds]);
 
   useEffect(() => {
-    localStorage.setItem('nexora_usd_app_download', JSON.stringify(appDownloadConfig));
+    localStorage.setItem('ebuy_partner_app_download', JSON.stringify(appDownloadConfig));
   }, [appDownloadConfig]);
 
   useEffect(() => {
-    localStorage.setItem('nexora_usd_policies', JSON.stringify(policies));
+    localStorage.setItem('ebuy_partner_policies', JSON.stringify(policies));
   }, [policies]);
 
   useEffect(() => {
-    localStorage.setItem('nexora_usd_company_locations', JSON.stringify(companyLocations));
+    localStorage.setItem('ebuy_partner_company_locations', JSON.stringify(companyLocations));
   }, [companyLocations]);
 
   useEffect(() => {
-    localStorage.setItem('nexora_usd_company_docs', JSON.stringify(companyDocuments));
+    localStorage.setItem('ebuy_partner_company_docs', JSON.stringify(companyDocuments));
   }, [companyDocuments]);
 
   useEffect(() => {
-    localStorage.setItem('nexora_usd_brand_ambassadors', JSON.stringify(brandAmbassadors));
+    localStorage.setItem('ebuy_partner_brand_ambassadors', JSON.stringify(brandAmbassadors));
   }, [brandAmbassadors]);
 
   useEffect(() => {
-    localStorage.setItem('nexora_usd_cart', JSON.stringify(cart));
+    localStorage.setItem('ebuy_partner_cart', JSON.stringify(cart));
   }, [cart]);
+
+  useEffect(() => {
+    localStorage.setItem('ebuy_partner_notifications', JSON.stringify(notifications));
+  }, [notifications]);
+
+  useEffect(() => {
+    if (currentViewState) {
+      localStorage.setItem('ebuy_partner_current_view', currentViewState);
+    }
+  }, [currentViewState]);
+
+  useEffect(() => {
+    if (adminSection) {
+      localStorage.setItem('ebuy_partner_admin_section', adminSection);
+    }
+  }, [adminSection]);
 
   // Backend Persistent Storage Hydration (Load on launch)
   useEffect(() => {
@@ -1150,6 +1193,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       },
     }));
 
+    // Real-time notification for client
+    const depositApprovedNotif: Notification = {
+      id: `NOTIF-${Date.now()}`,
+      userId: deposit.userId,
+      title: 'Deposit Approved & Balance Credited',
+      message: `Your deposit of ${formatCurrency(deposit.amount)} via ${deposit.paymentMethod.toUpperCase()} (${deposit.cryptoNetwork || 'TRC20'}) has been approved by admin Jerry@786. Assets are now available in your balance.`,
+      type: 'deposit',
+      read: false,
+      createdAt: now,
+      link: 'wallet',
+    };
+    setNotifications((prev) => [depositApprovedNotif, ...prev]);
+
     showToast(`Deposit ${deposit.id} approved. Funds credited to user wallet in USD.`, 'success');
   };
 
@@ -1171,6 +1227,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           : d
       )
     );
+
+    // Real-time notification for client
+    const depositRejectedNotif: Notification = {
+      id: `NOTIF-${Date.now()}`,
+      userId: deposit.userId,
+      title: 'Deposit Request Declined',
+      message: `Your deposit request of ${formatCurrency(deposit.amount)} via ${deposit.paymentMethod.toUpperCase()} was declined by admin Jerry@786. Note: ${reason || 'Transaction verification unsuccessful.'}`,
+      type: 'deposit',
+      read: false,
+      createdAt: now,
+      link: 'wallet',
+    };
+    setNotifications((prev) => [depositRejectedNotif, ...prev]);
 
     showToast(`Deposit ${deposit.id} rejected.`, 'info');
   };
@@ -1237,6 +1306,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setWithdrawals((prev) => [newWithdrawal, ...prev]);
 
+    // Notification for client
+    const withSubmittedNotif: Notification = {
+      id: `NOTIF-${Date.now()}`,
+      userId: currentUser.id,
+      title: 'Withdrawal Request Submitted',
+      message: `Your withdrawal request of ${formatCurrency(amount)} (${withId}) via ${method.toUpperCase()} (${accountInfo.cryptoNetwork || 'TRC20'}) is submitted and awaiting admin review.`,
+      type: 'withdrawal',
+      read: false,
+      createdAt: now,
+      link: 'profile',
+    };
+    setNotifications((prev) => [withSubmittedNotif, ...prev]);
+
     // Record verified activity record in USD
     const newActivity: VerifiedActivity = {
       id: `ACT-${Date.now()}`,
@@ -1285,7 +1367,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       )
     );
 
-    const targetWallet = wallets[withItem.userId];
+    const targetWallet = wallets[withItem.userId] || {
+      userId: withItem.userId,
+      availableBalance: 0,
+      pendingBalance: 0,
+      totalDeposited: 0,
+      totalWithdrawn: 0,
+      totalCommission: 0,
+      currencyCode: 'USD',
+      currencySymbol: '$',
+    };
 
     if (status === 'completed' && previousStatus !== 'completed') {
       const txn: Transaction = {
@@ -1315,6 +1406,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           totalWithdrawn: Number((targetWallet.totalWithdrawn + withItem.amount).toFixed(2)),
         },
       }));
+
+      // Real-time client notification
+      const withApprovedNotif: Notification = {
+        id: `NOTIF-${Date.now()}`,
+        userId: withItem.userId,
+        title: 'Withdrawal Approved & Paid',
+        message: `Your withdrawal of ${formatCurrency(withItem.amount)} via ${withItem.method.toUpperCase()} (${withItem.accountInfo.cryptoNetwork || 'TRC20'}) has been approved by admin Jerry@786 and disbursed to ${withItem.accountInfo.walletAddress || 'your designated account'}.`,
+        type: 'withdrawal',
+        read: false,
+        createdAt: now,
+        link: 'profile',
+      };
+      setNotifications((prev) => [withApprovedNotif, ...prev]);
+
       showToast(`Payout ${withItem.id} approved and sent to ${withItem.accountInfo.walletAddress}!`, 'success');
     } else if (status === 'rejected' && previousStatus !== 'rejected') {
       setWallets((prev) => ({
@@ -1325,6 +1430,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           pendingBalance: Math.max(0, targetWallet.pendingBalance - withItem.amount),
         },
       }));
+
+      // Real-time client notification with admin note
+      const withRejectedNotif: Notification = {
+        id: `NOTIF-${Date.now()}`,
+        userId: withItem.userId,
+        title: 'Withdrawal Request Rejected',
+        message: `Your withdrawal request of ${formatCurrency(withItem.amount)} was rejected by admin Jerry@786. Note: ${reason || withItem.rejectionReason || 'Compliance verification required'}. Funds of ${formatCurrency(withItem.amount)} have been refunded back to your wallet balance.`,
+        type: 'withdrawal',
+        read: false,
+        createdAt: now,
+        link: 'profile',
+      };
+      setNotifications((prev) => [withRejectedNotif, ...prev]);
+
       showToast(`Payout ${withItem.id} rejected and funds restored to wallet.`, 'info');
     }
   };
@@ -1519,23 +1638,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }));
 
       const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
+      const diff = Number((newBal - prevBal).toFixed(2));
       const txn: Transaction = {
         id: `TXN-${Math.floor(100000 + Math.random() * 900000)}`,
         userId,
         userEmail: users.find((u) => u.id === userId)?.email || 'client@ebuy-partner.com',
         type: 'adjustment',
         direction: newBal >= prevBal ? 'credit' : 'debit',
-        amount: Math.abs(newBal - prevBal),
+        amount: Math.abs(diff),
         currencyCode: 'USD',
         previousBalance: Number(prevBal.toFixed(2)),
         newBalance: Number(newBal.toFixed(2)),
         status: 'completed',
         reference: 'ADMIN_ASSET_CONTROL',
-        description: data.auditNote || 'Manual ledger balance adjustment by administrator.',
+        description: data.auditNote || 'Manual ledger balance adjustment by administrator Jerry@786.',
         createdAt: now,
         createdBy: 'admin',
       };
       setTransactions((prev) => [txn, ...prev]);
+
+      if (diff !== 0) {
+        const notif: Notification = {
+          id: `NOTIF-${Date.now()}`,
+          userId,
+          title: diff > 0 ? 'Balance Credited by Admin' : 'Balance Adjusted',
+          message: diff > 0
+            ? `Administrator Jerry@786 credited +${formatCurrency(diff)} to your account balance. Your new available balance is ${formatCurrency(newBal)}.`
+            : `Administrator Jerry@786 adjusted your account balance by -${formatCurrency(Math.abs(diff))}. New balance: ${formatCurrency(newBal)}.`,
+          type: 'system',
+          read: false,
+          createdAt: now,
+          link: 'wallet',
+        };
+        setNotifications((prev) => [notif, ...prev]);
+      }
     }
   };
 
@@ -1669,6 +1805,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           currencySymbol: '$',
         };
       }
+      localStorage.setItem('ebuy_partner_user', JSON.stringify(adminUser));
+      localStorage.setItem('ebuy_partner_current_view', 'admin');
       setCurrentUser(adminUser);
       setCurrentViewState('admin');
       showToast('Authenticated as Main Super Administrator (Jerry@786).', 'success');
@@ -1762,13 +1900,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCurrentUser(newUser);
     setCurrentView('home');
 
+    // Automatically sync new registrant to Firebase Firestore
+    syncUserToFirestore(newUser).catch((err) => console.warn('Firebase Firestore sync error:', err));
+    syncWalletToFirestore(newWallet).catch(() => {});
+
     showToast(`Welcome ${name}! Your Free Basic Trial is now active. Complete 4 trial tasks to earn your $80 reward.`, 'success');
     return true;
   };
 
   const logout = () => {
     setCurrentUser(null);
-    setCurrentView('home');
+    firebaseSignOut(auth).catch(() => {});
+    localStorage.removeItem('ebuy_partner_user');
+    localStorage.removeItem('nexora_usd_user');
+    localStorage.setItem('ebuy_partner_current_view', 'landing');
+    setCurrentViewState('landing');
     showToast('Signed out successfully.', 'info');
   };
 

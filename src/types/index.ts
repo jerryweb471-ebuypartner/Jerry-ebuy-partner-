@@ -199,7 +199,7 @@ export interface Transaction {
   status: TransactionStatus;
   reference: string;
   description: string;
-  paymentMethod?: 'binance' | 'crypto' | 'wallet_balance' | 'system';
+  paymentMethod?: 'binance' | 'crypto' | 'wallet_balance' | 'system' | 'bank_transfer';
   createdAt: string;
   createdBy: 'system' | 'admin' | 'user';
 }
@@ -226,7 +226,7 @@ export interface Deposit {
 }
 
 export type WithdrawalStatus = 'pending' | 'processing' | 'completed' | 'rejected' | 'failed';
-export type WithdrawalMethod = 'binance' | 'crypto';
+export type WithdrawalMethod = 'binance' | 'crypto' | 'bank_transfer';
 
 export interface Withdrawal {
   id: string;
@@ -239,6 +239,7 @@ export interface Withdrawal {
   netAmount: number;
   method: WithdrawalMethod;
   accountInfo: {
+    accountTitle?: string;
     cryptoNetwork?: string;
     walletAddress?: string;
     memoOrTag?: string;

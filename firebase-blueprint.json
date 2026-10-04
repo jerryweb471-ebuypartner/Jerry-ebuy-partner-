@@ -1,0 +1,52 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Registered merchant partner user profile and tier level information.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique user ID" },
+        "name": { "type": "string", "description": "Full name of partner", "maxLength": 100 },
+        "email": { "type": "string", "format": "email", "description": "Email address" },
+        "phone": { "type": "string", "description": "Phone number" },
+        "role": { "type": "string", "enum": ["user", "admin", "manager"], "description": "User role" },
+        "status": { "type": "string", "enum": ["active", "suspended", "pending"], "description": "Account status" },
+        "level": { "type": "number", "description": "Merchant tier level (0-7)" },
+        "country": { "type": "string", "description": "Country of residence" },
+        "countryCode": { "type": "string", "description": "ISO country code" },
+        "currency": { "type": "string", "description": "Account currency" },
+        "referralCode": { "type": "string", "description": "Referral code for invites" },
+        "referredBy": { "type": "string", "description": "Referrer code if invited" },
+        "createdAt": { "type": "string", "description": "Timestamp ISO string" },
+        "updatedAt": { "type": "string", "description": "Timestamp ISO string" }
+      },
+      "required": ["id", "name", "email", "role", "level"]
+    },
+    "UserWallet": {
+      "title": "UserWallet",
+      "description": "User wallet holding available and pending balance funds.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "ID of user" },
+        "availableBalance": { "type": "number", "description": "Available USD balance" },
+        "pendingBalance": { "type": "number", "description": "Pending balance" },
+        "totalDeposited": { "type": "number", "description": "Total deposited" },
+        "totalWithdrawn": { "type": "number", "description": "Total withdrawn" },
+        "totalCommission": { "type": "number", "description": "Total commission earned" },
+        "currencyCode": { "type": "string", "description": "Currency code USD" },
+        "updatedAt": { "type": "string", "description": "Timestamp ISO string" }
+      },
+      "required": ["userId", "availableBalance"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Merchant partner profile document identified by user UID."
+    },
+    "/wallets/{userId}": {
+      "schema": "UserWallet",
+      "description": "Merchant wallet document."
+    }
+  }
+}
