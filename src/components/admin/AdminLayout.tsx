@@ -44,7 +44,7 @@ export const AdminLayout: React.FC = () => {
                 </span>
               </div>
               <p className="text-[10px] text-neutral-400 font-mono">
-                USD Financial Infrastructure · Main Admin: Jerry@786
+                USD Financial Infrastructure · Main Admin: jerryhun47@gmail.com
               </p>
             </div>
           </div>

@@ -6,6 +6,8 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   sendEmailVerification,
+  sendPasswordResetEmail,
+  confirmPasswordReset,
   signOut,
   RecaptchaVerifier,
   signInWithPhoneNumber,
@@ -42,10 +44,11 @@ export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-// ActionCodeSettings for Email Verification
+// ActionCodeSettings for Email Verification and Password Reset
 export const getActionCodeSettings = (): ActionCodeSettings => {
+  const currentOrigin = typeof window !== 'undefined' && window.location.origin ? window.location.origin : 'https://ebuy-partner.shop';
   return {
-    url: 'https://ebuy-partner.shop/dashboard',
+    url: `${currentOrigin}/`,
     handleCodeInApp: true,
   };
 };
@@ -155,6 +158,8 @@ export {
   signInWithEmailAndPassword,
   signInWithPopup,
   sendEmailVerification,
+  sendPasswordResetEmail,
+  confirmPasswordReset,
   signOut,
   RecaptchaVerifier,
   signInWithPhoneNumber,

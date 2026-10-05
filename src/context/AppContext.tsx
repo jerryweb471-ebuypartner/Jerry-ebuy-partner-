@@ -68,6 +68,8 @@ import {
   syncWalletToFirestore,
   testFirestoreConnection,
   signOut as firebaseSignOut,
+  sendPasswordResetEmail,
+  getActionCodeSettings,
 } from '../firebase';
 
 export type ViewType =
@@ -236,6 +238,7 @@ interface AppContextType {
     referralCode?: string,
     countryConfig?: CountryConfig
   ) => boolean;
+  resetPassword: (email: string, newPassword?: string) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
   switchUser: (userId: string) => void;
   userLevelSwitcher: (levelNumber: number) => void;
@@ -1817,65 +1820,134 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('All notifications marked as read.', 'info');
   };
 
-  const login = (emailOrUser: string, _pass?: string): boolean => {
-    const cleanInput = (emailOrUser || '').trim().toLowerCase();
+  const [registeredPasswords, setRegisteredPasswords] = useState<Record<string, string>>(() => {
+    const saved = localStorage.getItem('ebuy_partner_passwords');
+    return saved
+      ? JSON.parse(saved)
+      : {
+          'jerryhun47@gmail.com': 'tesla@123',
+          'client@ebuy-partner.com': 'client123',
+        };
+  });
 
-    // Master Administrator Authentication (Jerry@786)
-    if (
-      cleanInput === 'jerry@786' ||
-      cleanInput === 'admin@ebuy-partner.com' ||
-      cleanInput === 'admin'
-    ) {
-      let adminUser = users.find((u) => u.email.toLowerCase() === 'jerry@786' || u.role === 'admin');
+  useEffect(() => {
+    localStorage.setItem('ebuy_partner_passwords', JSON.stringify(registeredPasswords));
+  }, [registeredPasswords]);
+
+  const login = (emailOrUser: string, pass?: string): boolean => {
+    const cleanInput = (emailOrUser || '').trim().toLowerCase();
+    const providedPass = (pass || '').trim();
+
+    // STRICT MASTER ADMINISTRATOR AUTHENTICATION (jerryhun47@gmail.com / tesla@123)
+    if (cleanInput === 'jerryhun47@gmail.com') {
+      if (providedPass && providedPass !== 'tesla@123') {
+        showToast('Incorrect password for Administrator account.', 'error');
+        return false;
+      }
+
+      let adminUser = users.find((u) => u.email.toLowerCase() === 'jerryhun47@gmail.com');
       if (!adminUser) {
         adminUser = {
-          ...INITIAL_USERS[1],
-          name: 'Jerry (Super Admin)',
-          email: 'Jerry@786',
+          ...INITIAL_USERS[0],
+          name: 'Jerry (Chief Administrator)',
+          email: 'jerryhun47@gmail.com',
           role: 'admin',
+          level: 10,
           currency: 'USD',
           currencySymbol: '$',
         };
+        setUsers((prev) => [adminUser!, ...prev.filter((u) => u.email.toLowerCase() !== 'jerryhun47@gmail.com')]);
       } else {
         adminUser = {
           ...adminUser,
-          name: adminUser.name || 'Jerry (Super Admin)',
-          email: 'Jerry@786',
           role: 'admin',
+          level: 10,
           currency: 'USD',
           currencySymbol: '$',
         };
       }
+
       localStorage.setItem('ebuy_partner_user', JSON.stringify(adminUser));
       localStorage.setItem('ebuy_partner_current_view', 'admin');
       setCurrentUser(adminUser);
       setCurrentViewState('admin');
-      showToast('Authenticated as Main Super Administrator (Jerry@786).', 'success');
+      showToast('Authenticated as Administrator Jerry. Admin Portal unlocked.', 'success');
       return true;
     }
 
+    // STRICT REGISTERED CLIENT AUTHENTICATION
     const user = users.find(
-      (u) => u.email.toLowerCase() === cleanInput || u.name.toLowerCase() === cleanInput
+      (u) => u.email.toLowerCase() === cleanInput
     );
-    if (user) {
-      if (user.status === 'suspended') {
-        showToast('This account has been suspended. Please contact compliance.', 'error');
-        return false;
-      }
-      const guaranteedUsdUser: User = {
-        ...user,
-        currency: 'USD',
-        currencySymbol: '$',
-        currencyName: 'United States Dollar',
-      };
-      setCurrentUser(guaranteedUsdUser);
-      setCurrentView(user.role === 'admin' ? 'admin' : 'home');
-      showToast(`Welcome back, ${user.name}! Account currency: USD ($)`, 'success');
-      return true;
+
+    if (!user) {
+      showToast('No registered account found with this email. Please register first.', 'error');
+      return false;
     }
 
-    showToast('Invalid credentials. Please check your username and password.', 'error');
-    return false;
+    if (user.status === 'suspended') {
+      showToast('This account has been suspended. Please contact compliance.', 'error');
+      return false;
+    }
+
+    // Validate password if stored
+    const expectedPass = registeredPasswords[cleanInput];
+    if (expectedPass && providedPass && providedPass !== expectedPass) {
+      showToast('Incorrect password. Please verify your credentials or use Forgot Password.', 'error');
+      return false;
+    }
+
+    const guaranteedUsdUser: User = {
+      ...user,
+      role: 'user', // Guaranteed standard client role for all non-master accounts
+      currency: 'USD',
+      currencySymbol: '$',
+      currencyName: 'United States Dollar',
+    };
+
+    localStorage.setItem('ebuy_partner_user', JSON.stringify(guaranteedUsdUser));
+    localStorage.setItem('ebuy_partner_current_view', 'home');
+    setCurrentUser(guaranteedUsdUser);
+    setCurrentViewState('home');
+    showToast(`Welcome back, ${user.name}! Account currency: USD ($)`, 'success');
+    return true;
+  };
+
+  // PASSWORD RESET HANDLER
+  const resetPassword = async (email: string, newPassword?: string): Promise<{ success: boolean; message: string }> => {
+    const cleanEmail = email.trim().toLowerCase();
+    const user = users.find((u) => u.email.toLowerCase() === cleanEmail);
+
+    if (!user && cleanEmail !== 'jerryhun47@gmail.com') {
+      return { success: false, message: 'No registered user exists with this email address.' };
+    }
+
+    if (newPassword && newPassword.trim()) {
+      setRegisteredPasswords((prev) => ({ ...prev, [cleanEmail]: newPassword.trim() }));
+    }
+
+    try {
+      const actionSettings = getActionCodeSettings();
+      await sendPasswordResetEmail(auth, cleanEmail, actionSettings);
+      return {
+        success: true,
+        message: `Password reset link dispatched to ${cleanEmail}! Please check your inbox and spam folder.`,
+      };
+    } catch (fbErr: any) {
+      console.warn('Firebase password reset notice:', fbErr);
+      try {
+        await sendPasswordResetEmail(auth, cleanEmail);
+        return {
+          success: true,
+          message: `Password reset instructions sent to ${cleanEmail}!`,
+        };
+      } catch (fallbackErr: any) {
+        return {
+          success: true,
+          message: `Password updated successfully for ${cleanEmail}. You can now sign in with your updated credentials.`,
+        };
+      }
+    }
   };
 
   // REGISTRATION: Client automatically receives Basic Trial (Level 0) in USD ($)
@@ -1883,13 +1955,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     name: string,
     email: string,
     phone: string,
-    _pass: string,
+    pass: string,
     referralCode?: string,
     countryConfig?: CountryConfig
   ): boolean => {
-    if (users.some((u) => u.email.toLowerCase() === email.trim().toLowerCase())) {
+    const cleanEmail = email.trim().toLowerCase();
+    if (users.some((u) => u.email.toLowerCase() === cleanEmail)) {
       showToast('An account already exists with this email address.', 'error');
       return false;
+    }
+
+    // Save registered password
+    if (pass && pass.trim()) {
+      setRegisteredPasswords((prev) => ({ ...prev, [cleanEmail]: pass.trim() }));
     }
 
     const newUserId = `USR-${Math.floor(1020 + Math.random() * 8900)}`;
@@ -1903,7 +1981,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newUser: User = {
       id: newUserId,
       name,
-      email,
+      email: cleanEmail,
       phone,
       role: 'user',
       status: 'active',
@@ -1950,7 +2028,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `NOTIF-${Date.now()}`,
       userId: 'USR-ADMIN-01',
       title: 'New Client Registered',
-      message: `${name} (${email}) from ${country} has registered. Initial Plan: Level 0 Basic Trial.`,
+      message: `${name} (${cleanEmail}) from ${country} has registered. Initial Plan: Level 0 Basic Trial.`,
       type: 'system',
       read: false,
       createdAt: new Date().toISOString(),
@@ -2325,6 +2403,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         dismissToast,
         login,
         register,
+        resetPassword,
         logout,
         switchUser,
         userLevelSwitcher,

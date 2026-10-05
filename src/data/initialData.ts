@@ -283,8 +283,8 @@ export const COUNTRIES_LIST: CountryConfig[] = [
 export const INITIAL_USERS: User[] = [
   {
     id: 'USR-ADMIN-01',
-    name: 'Administrator',
-    email: 'jerryweb471@gmail.com',
+    name: 'Jerry (Chief Administrator)',
+    email: 'jerryhun47@gmail.com',
     phone: '+1 (555) 019-2831',
     role: 'admin',
     status: 'active',
@@ -293,7 +293,7 @@ export const INITIAL_USERS: User[] = [
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     twoFactorEnabled: true,
     activeSessionsCount: 1,
-    lastLoginAt: '2026-10-04 07:00 AM',
+    lastLoginAt: '2026-10-05 08:00 AM',
     createdAt: '2024-01-01',
     city: 'New York',
     country: 'United States',
@@ -315,7 +315,7 @@ export const INITIAL_USERS: User[] = [
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
     twoFactorEnabled: false,
     activeSessionsCount: 1,
-    lastLoginAt: '2026-10-04 06:30 AM',
+    lastLoginAt: '2026-10-05 07:30 AM',
     createdAt: '2026-10-01',
     city: 'New York',
     country: 'United States',
