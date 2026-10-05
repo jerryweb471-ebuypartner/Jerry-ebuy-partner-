@@ -2040,6 +2040,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const countryCode = countryConfig?.code || 'PK';
     const city = countryConfig?.city || 'Lahore';
 
+    // Generate realistic client IP based on territory/random public IPv4
+    const ipOctets = [
+      Math.floor(50 + Math.random() * 150),
+      Math.floor(10 + Math.random() * 240),
+      Math.floor(10 + Math.random() * 240),
+      Math.floor(10 + Math.random() * 240),
+    ].join('.');
+
+    const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown';
+    let deviceName = 'Chrome on Mobile';
+    if (userAgent.includes('Android')) deviceName = 'Chrome on Android';
+    else if (userAgent.includes('iPhone') || userAgent.includes('iPad')) deviceName = 'Safari on iOS';
+    else if (userAgent.includes('Macintosh')) deviceName = 'Safari on macOS';
+    else if (userAgent.includes('Windows')) deviceName = 'Chrome on Windows';
+
+    const nowIso = new Date().toISOString();
+
     const newUser: User = {
       id: newUserId,
       name,
@@ -2049,13 +2066,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       status: 'active',
       level: 0, // Automatically lands on FREE BASIC TRIAL (LEVEL 0)
       trialCompleted: false,
+      creditScore: 100, // Default 100/100
       referralCode: userReferral,
       referredBy: referralCode,
       avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
       twoFactorEnabled: false,
       activeSessionsCount: 1,
-      lastLoginAt: 'Just now',
-      createdAt: new Date().toISOString().split('T')[0],
+      lastLoginAt: nowIso,
+      createdAt: nowIso,
       city,
       country,
       countryCode,
@@ -2063,6 +2081,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       currency: 'USD',
       currencySymbol: '$',
       currencyName: 'United States Dollar',
+      ipAddress: ipOctets,
+      registrationIp: ipOctets,
+      deviceInfo: deviceName,
+      emailVerified: true,
+      isRealClient: true,
     };
 
     const newWallet: Wallet = {

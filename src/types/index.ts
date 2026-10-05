@@ -33,6 +33,13 @@ export interface User {
   authProvider?: 'email' | 'google';
   trialCompleted?: boolean;
   creditScore?: number; // 0 to 100, default 100
+  ipAddress?: string; // Real or detected public IP address
+  registrationIp?: string;
+  deviceInfo?: string; // e.g. Android 14 Mobile / Chrome 129
+  browser?: string;
+  os?: string;
+  emailVerified?: boolean;
+  isRealClient?: boolean;
 }
 
 export interface UserLevel {

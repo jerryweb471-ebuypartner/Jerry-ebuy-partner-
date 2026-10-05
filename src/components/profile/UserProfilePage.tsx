@@ -425,35 +425,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
   // =========================================================================
   return (
     <div className="space-y-5 pb-20 max-w-4xl mx-auto font-sans">
-      {/* 1. EMAIL VERIFICATION NOTIFICATION BANNER */}
-      <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0 text-amber-700">
-            <Mail className="w-5 h-5" />
-          </div>
-          <div>
-            <h4 className="text-xs sm:text-sm font-bold text-amber-950 flex items-center gap-1.5">
-              <span>Please Verify Your Email Address</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-200 text-amber-900 font-bold uppercase">
-                Action Recommended
-              </span>
-            </h4>
-            <p className="text-[11px] sm:text-xs text-amber-800 mt-0.5">
-              A verification link was dispatched to <strong>{currentUser.email}</strong>. Please confirm your email to secure your account.
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={handleResendVerification}
-          disabled={isSendingVerification}
-          className="self-start sm:self-auto px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-all shadow-xs disabled:opacity-50 cursor-pointer flex-shrink-0"
-        >
-          {isSendingVerification ? 'Sending...' : 'Resend Verification Link'}
-        </button>
-      </div>
-
-      {/* 2. UNIFIED PROFESSIONAL USER PROFILE & BALANCES CARD (Light Gray Background) */}
+      {/* UNIFIED PROFESSIONAL USER PROFILE & BALANCES CARD (Light Gray Background) */}
       <section className="bg-[#F8FAFC] rounded-3xl border border-[#E2E8F0] p-5 sm:p-7 shadow-sm space-y-6">
         {/* Top Profile Header: Avatar, Name + Level Badge, Gmail, Status, Credit Score */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-[#E2E8F0]">

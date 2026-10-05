@@ -164,59 +164,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   return (
     <div className="space-y-6 sm:space-y-8 pb-16 font-sans">
       {/* =========================================================================
-          1. VERIFIED ACTIVITY (USD Settlements, 4-Second Rotation)
-         ========================================================================= */}
-      <section className="bg-white border border-[#E5E7EB] rounded-2xl p-3 sm:p-3.5 shadow-2xs hover:border-[#FF8A3D]/50 transition-all duration-300">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1.5 text-[11px] font-black text-[#F4511E] bg-[#FFF4ED] border border-[#FFD7C2] px-2.5 py-0.5 rounded-full shrink-0 shadow-2xs">
-              <span className="w-2 h-2 rounded-full bg-[#F4511E] animate-pulse" />
-              Verified Activity
-            </span>
-            <span className="text-[11px] font-semibold text-[#666666] hidden sm:inline">
-              Real-time audited USD ($) settlements
-            </span>
-          </div>
-
-          {activeActivity ? (
-            <div className="flex items-center gap-2.5 text-xs bg-[#FFFDFB] sm:bg-transparent p-1.5 sm:p-0 rounded-xl border sm:border-0 border-[#FFD7C2]/40 transition-all duration-500">
-              <div className="flex items-center gap-1.5">
-                <span className="text-base leading-none">{activeActivity.countryFlag}</span>
-                <span className="font-extrabold text-[#171717]">
-                  {activeActivity.displayName}
-                </span>
-                <span className="text-[#666666] text-[11px]">
-                  from {activeActivity.city}, {activeActivity.countryName}
-                </span>
-              </div>
-
-              <div className="h-3 w-px bg-gray-200 hidden md:block" />
-
-              <div className="flex items-center gap-1">
-                <span className="text-[#666666] capitalize text-[11px]">
-                  {activeActivity.activityType.replace('_', ' ')}:
-                </span>
-                <strong className="text-[#16A34A] font-black font-mono">
-                  {formatCurrency(activeActivity.amount)}
-                </strong>
-              </div>
-
-              <div className="h-3 w-px bg-gray-200 hidden md:block" />
-
-              <span className="text-[10px] text-[#666666] bg-gray-100 px-2 py-0.5 rounded-full font-semibold shrink-0">
-                {getRelativeTime(activeActivity.verifiedAt)}
-              </span>
-            </div>
-          ) : (
-            <div className="text-xs text-[#666666] italic">
-              No recent verified activity.
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* =========================================================================
-          2. COMPACT & SLEEK EBAY + EBUY-PARTNER SISTER COMPANY BANNER
+          1. COMPACT & SLEEK EBAY + EBUY-PARTNER SISTER COMPANY BANNER
          ========================================================================= */}
       <section className="bg-gradient-to-r from-amber-500/10 via-white to-orange-500/5 rounded-2xl border border-amber-300 p-4 sm:p-5 shadow-sm relative overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
