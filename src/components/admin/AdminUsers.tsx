@@ -72,19 +72,29 @@ export const AdminUsers: React.FC = () => {
   const [newPassword, setNewPassword] = useState<string>('');
   const [auditNote, setAuditNote] = useState<string>('');
 
-  const filteredUsers = users.filter((u) => {
-    if (statusFilter !== 'all' && u.status !== statusFilter) return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const matchName = u.name.toLowerCase().includes(q);
-      const matchEmail = u.email.toLowerCase().includes(q);
-      const matchId = u.id.toLowerCase().includes(q);
-      const matchCountry = (u.country || '').toLowerCase().includes(q);
-      const matchIp = (u.ipAddress || '').toLowerCase().includes(q);
-      if (!matchName && !matchEmail && !matchId && !matchCountry && !matchIp) return false;
-    }
-    return true;
-  });
+  const filteredUsers = users
+    .filter((u) => {
+      if (statusFilter !== 'all' && u.status !== statusFilter) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchName = u.name.toLowerCase().includes(q);
+        const matchEmail = u.email.toLowerCase().includes(q);
+        const matchId = u.id.toLowerCase().includes(q);
+        const matchCountry = (u.country || '').toLowerCase().includes(q);
+        const matchIp = (u.ipAddress || '').toLowerCase().includes(q);
+        if (!matchName && !matchEmail && !matchId && !matchCountry && !matchIp) return false;
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      // Pin Admin Jerry at the top
+      if (a.email === 'jerryhun47@gmail.com') return -1;
+      if (b.email === 'jerryhun47@gmail.com') return 1;
+      // Sort other users by registration date descending (newest first)
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      return dateB - dateA;
+    });
 
   const handleOpenAssetControl = (user: User) => {
     setAssetControlUser(user);
@@ -197,9 +207,10 @@ export const AdminUsers: React.FC = () => {
                 const userWallet = wallets[user.id];
                 const isActive = user.status === 'active';
                 const isSuspended = user.status === 'suspended';
+                const isRecentRegistration = Date.now() - new Date(user.createdAt || 0).getTime() < 48 * 60 * 60 * 1000 && user.role !== 'admin';
 
                 return (
-                  <tr key={`${user.id}-${idx}`} className="hover:bg-[#FFF8F4]/50 transition-colors">
+                  <tr key={`${user.id}-${idx}`} className={`hover:bg-[#FFF8F4]/50 transition-colors ${isRecentRegistration ? 'bg-amber-50/20' : ''}`}>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         <img
@@ -210,11 +221,15 @@ export const AdminUsers: React.FC = () => {
                         <div>
                           <div className="flex items-center gap-1.5">
                             <p className="font-bold text-[#171717]">{user.name}</p>
-                            {user.role === 'admin' && (
+                            {user.role === 'admin' ? (
                               <span className="px-1.5 py-0.2 rounded-md bg-purple-100 text-purple-900 font-extrabold text-[9px] border border-purple-200">
                                 ADMIN
                               </span>
-                            )}
+                            ) : isRecentRegistration ? (
+                              <span className="px-1.5 py-0.2 rounded-md bg-orange-100 text-[#F4511E] font-black text-[9px] border border-orange-300 animate-pulse">
+                                ✨ NEW
+                              </span>
+                            ) : null}
                           </div>
                           <p className="text-[11px] text-[#666666] font-mono mt-0.5">
                             {user.email} · <span className="text-[#F4511E] font-semibold">{user.id}</span>

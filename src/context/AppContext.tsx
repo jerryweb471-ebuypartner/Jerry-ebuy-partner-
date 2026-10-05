@@ -322,6 +322,33 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+// Play distinct celebratory musical tune when a new client registers
+export const playNewClientTune = () => {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+
+    // Rich 5-tone ascending fanfare (C5, E5, G5, B5, C6)
+    const notes = [523.25, 659.25, 783.99, 987.77, 1046.5];
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+      gain.gain.setValueAtTime(0.35, now + idx * 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.45);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + idx * 0.08);
+      osc.stop(now + idx * 0.08 + 0.45);
+    });
+  } catch (e) {
+    console.warn('Audio tune error:', e);
+  }
+};
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Navigation State with full refresh persistence
   const [currentViewState, setCurrentViewState] = useState<ViewType>(() => {
@@ -2099,10 +2126,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       currencySymbol: '$',
     };
 
-    setUsers((prev) => [newUser, ...prev]);
-    setWallets((prev) => ({ ...prev, [newUserId]: newWallet }));
+    setUsers((prev) => {
+      const updated = [newUser, ...prev.filter((u) => u.email.toLowerCase() !== cleanEmail)];
+      try {
+        localStorage.setItem('ebuy_partner_users', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+
+    setWallets((prev) => {
+      const updated = { ...prev, [newUserId]: newWallet };
+      try {
+        localStorage.setItem('ebuy_partner_wallets', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+
     setCurrentUser(newUser);
     setCurrentView('home');
+
+    // Play special registration tune
+    playNewClientTune();
 
     // Automatically sync new registrant to Firebase Firestore
     syncUserToFirestore(newUser).catch((err) => console.warn('Firebase Firestore sync error:', err));
@@ -2112,11 +2156,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const adminNotif: Notification = {
       id: `NOTIF-${Date.now()}`,
       userId: 'USR-ADMIN-01',
-      title: 'New Client Registered',
-      message: `${name} (${cleanEmail}) from ${country} has registered. Initial Plan: Level 0 Basic Trial.`,
+      title: '🎉 New Client Registered',
+      message: `New client ${name} (${cleanEmail}) from ${countryFlag} ${country} (IP: ${ipOctets}) registered. Initial Plan: Level 0 Basic Trial ($0).`,
       type: 'system',
       read: false,
-      createdAt: new Date().toISOString(),
+      createdAt: nowIso,
       link: 'admin',
     };
     setNotifications((prev) => [adminNotif, ...prev]);
