@@ -64,11 +64,11 @@ const MainLayout: React.FC = () => {
     setIsDepositOpen(true);
   };
 
-  // STRICT ADMIN ACCESS GUARD: Only role === 'admin' can view Admin Portal
-  const isAdminView = currentView === 'admin' && currentUser?.role === 'admin';
+  // STRICT ADMIN ACCESS GUARD: When master admin (jerryhun47@gmail.com) is logged in, render EXCLUSIVELY Admin Portal
+  const isAdminUser = currentUser?.role === 'admin';
 
-  // If on admin view, render ONLY dedicated Admin Portal Layout (zero client widgets)
-  if (isAdminView) {
+  // If on admin session, render ONLY dedicated Admin Portal Layout (zero client widgets or exit)
+  if (isAdminUser) {
     return (
       <>
         <AdminLayout />

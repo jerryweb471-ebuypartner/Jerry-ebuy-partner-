@@ -62,24 +62,14 @@ export const AdminLayout: React.FC = () => {
               <span className="font-bold">{currentUser?.name || 'Jerry (Main Admin)'}</span>
             </div>
 
-            {/* Exit to Client App button */}
-            <button
-              onClick={() => setCurrentView('home')}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-colors border border-white/10"
-              title="Return to Client View"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Exit to App</span>
-            </button>
-
             {/* Admin Sign Out button */}
             <button
               onClick={logout}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-bold transition-colors border border-rose-500/30"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-bold transition-colors border border-rose-500/30 cursor-pointer"
               title="Sign Out of Admin"
             >
               <LogOut className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Sign Out</span>
+              <span>Sign Out</span>
             </button>
           </div>
         </div>

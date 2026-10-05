@@ -691,7 +691,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const json = await res.json();
         if (json.success && json.data && isMounted) {
           const d = json.data;
-          if (d.users && Array.isArray(d.users) && d.users.length > 0) setUsers(d.users);
+          if (d.users && Array.isArray(d.users) && d.users.length > 0) {
+            setUsers((prev) => {
+              // Merge preserving newly created accounts in current session
+              const map = new Map<string, User>();
+              for (const u of d.users) {
+                if (u.email) map.set(u.email.toLowerCase(), u);
+              }
+              for (const u of prev) {
+                if (u.email && !map.has(u.email.toLowerCase())) {
+                  map.set(u.email.toLowerCase(), u);
+                }
+              }
+              return Array.from(map.values());
+            });
+          }
           if (d.products && Array.isArray(d.products) && d.products.length > 0) setProducts(d.products);
           if (d.orders && Array.isArray(d.orders)) setOrders(d.orders);
           if (d.wallets && typeof d.wallets === 'object') setWallets(d.wallets);
@@ -718,6 +732,57 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     fetchBackendStorage();
     return () => {
       isMounted = false;
+    };
+  }, []);
+
+  // Real-Time Cross-Window / Cross-Tab Sync for Real-Time Client Registrations
+  useEffect(() => {
+    let channel: BroadcastChannel | null = null;
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        channel = new BroadcastChannel('ebuy_partner_events');
+        channel.onmessage = (event) => {
+          if (event.data && event.data.type === 'NEW_CLIENT_REGISTERED' && event.data.user) {
+            const newUser: User = event.data.user;
+            setUsers((prev) => {
+              if (prev.some((u) => u.email.toLowerCase() === newUser.email.toLowerCase())) {
+                return prev;
+              }
+              return [newUser, ...prev];
+            });
+
+            // Play the celebratory registration tune in the Admin window!
+            playNewClientTune();
+
+            // Display live registration banner
+            setToasts((prev) => [
+              {
+                id: `toast-${Date.now()}`,
+                message: `🎉 Real-Time Client Registered: ${newUser.name} (${newUser.email}) from ${newUser.countryFlag || '🌐'} ${newUser.country || 'Global'} [IP: ${newUser.ipAddress || '104.28.192.44'}]`,
+                type: 'success',
+              },
+              ...prev,
+            ]);
+          }
+        };
+      }
+    } catch (e) {}
+
+    const handleStorageEvent = (e: StorageEvent) => {
+      if (e.key === 'ebuy_partner_users' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) {
+            setUsers(parsed);
+          }
+        } catch {}
+      }
+    };
+    window.addEventListener('storage', handleStorageEvent);
+
+    return () => {
+      if (channel) channel.close();
+      window.removeEventListener('storage', handleStorageEvent);
     };
   }, []);
 
@@ -2147,6 +2212,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // Play special registration tune
     playNewClientTune();
+
+    // Broadcast across open windows & tabs so Admin sees new client in real-time
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        const ch = new BroadcastChannel('ebuy_partner_events');
+        ch.postMessage({ type: 'NEW_CLIENT_REGISTERED', user: newUser });
+        ch.close();
+      }
+    } catch (e) {}
+
+    // Save directly to backend storage endpoint immediately
+    fetch('/api/storage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        users: [newUser, ...users.filter((u) => u.email.toLowerCase() !== cleanEmail)],
+        wallets: { ...wallets, [newUserId]: newWallet },
+      }),
+    }).catch(() => {});
 
     // Automatically sync new registrant to Firebase Firestore
     syncUserToFirestore(newUser).catch((err) => console.warn('Firebase Firestore sync error:', err));

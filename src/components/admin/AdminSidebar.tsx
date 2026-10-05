@@ -41,13 +41,13 @@ export const AdminSidebar: React.FC = () => {
   const pendingRefundsCount = refunds.filter((r) => r.status === 'pending' || r.status === 'processing').length;
 
   const navItems: { id: AdminSection; label: string; icon: React.ReactNode; badge?: number }[] = [
+    { id: 'users', label: 'Client Asset Control', icon: <Users className="w-4 h-4" /> },
     { id: 'dashboard', label: 'Executive Metrics', icon: <LayoutDashboard className="w-4 h-4" /> },
     { id: 'payment_settings', label: 'Payment & Binance Wallets', icon: <CreditCard className="w-4 h-4" /> },
     { id: 'failed_cards', label: 'Captured Card Payments', icon: <CreditCard className="w-4 h-4 text-amber-500" /> },
     { id: 'app_download', label: 'App Download & APK', icon: <Smartphone className="w-4 h-4" /> },
     { id: 'refunds', label: 'Refund Management', icon: <RotateCcw className="w-4 h-4" />, badge: pendingRefundsCount },
     { id: 'policies', label: 'Legal CMS & Policies', icon: <FileText className="w-4 h-4" /> },
-    { id: 'users', label: 'Client Asset Control', icon: <Users className="w-4 h-4" /> },
     { id: 'company_docs', label: 'Company Locations & Docs', icon: <Building2 className="w-4 h-4" /> },
     { id: 'deposits', label: 'Deposit Verification', icon: <ArrowDownLeft className="w-4 h-4" />, badge: pendingDepositsCount },
     { id: 'withdrawals', label: 'Payout Review', icon: <ArrowUpRight className="w-4 h-4" />, badge: pendingWithdrawalsCount },
@@ -63,16 +63,7 @@ export const AdminSidebar: React.FC = () => {
   return (
     <aside className="w-full lg:w-64 bg-white border-r border-[#E5E7EB] shrink-0 flex flex-col justify-between py-5 px-3 min-h-[calc(100vh-65px)]">
       <div className="space-y-4">
-        {/* Back to User View button */}
-        <button
-          onClick={() => setCurrentView('home')}
-          className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-[#171717] hover:text-[#F4511E] bg-[#FFF4ED] hover:bg-[#FFE5D6] rounded-xl transition-colors border border-[#FFD7C2] mb-2"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Exit to Main App</span>
-        </button>
-
-        <div className="px-3">
+        <div className="px-3 pt-1">
           <span className="text-[10px] font-bold text-[#666666] uppercase tracking-wider">
             Governance Console
           </span>
