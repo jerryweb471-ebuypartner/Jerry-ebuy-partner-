@@ -38,6 +38,102 @@ async function startServer() {
     }
   };
 
+  // Connected SSE clients (for real-time Admin notifications)
+  const sseClients = new Set<express.Response>();
+
+  app.get('/api/live-stream', (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders?.();
+
+    sseClients.add(res);
+
+    // Send connection established handshake
+    res.write(`data: ${JSON.stringify({ type: 'CONNECTED', timestamp: new Date().toISOString() })}\n\n`);
+
+    req.on('close', () => {
+      sseClients.delete(res);
+    });
+  });
+
+  const broadcastToAdmins = (data: any) => {
+    const payload = `data: ${JSON.stringify(data)}\n\n`;
+    for (const client of sseClients) {
+      try {
+        client.write(payload);
+      } catch (e) {
+        sseClients.delete(client);
+      }
+    }
+  };
+
+  // Endpoint for Client Registration from Client Interface
+  app.post('/api/clients/register', (req, res) => {
+    const { user, wallet, password } = req.body;
+    if (!user || !user.email) {
+      return res.status(400).json({ success: false, error: 'User details required' });
+    }
+
+    const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || user.ipAddress || '104.28.192.44';
+
+    const enhancedUser = {
+      ...user,
+      ipAddress: clientIp.includes('::') || clientIp === '127.0.0.1' ? (user.ipAddress || '104.28.192.44') : clientIp,
+      registrationIp: clientIp.includes('::') || clientIp === '127.0.0.1' ? (user.registrationIp || '104.28.192.44') : clientIp,
+      isRealClient: true,
+      emailVerified: true,
+      creditScore: user.creditScore ?? 100,
+      createdAt: user.createdAt || new Date().toISOString(),
+    };
+
+    const storage = getStorage() || {};
+    const existingUsers: any[] = Array.isArray(storage.users) ? storage.users : [];
+    
+    // Deduplicate by email
+    const cleanEmail = enhancedUser.email.toLowerCase().trim();
+    const filteredUsers = existingUsers.filter((u: any) => (u.email || '').toLowerCase().trim() !== cleanEmail);
+    const updatedUsers = [enhancedUser, ...filteredUsers];
+
+    // Ensure Master Admin Jerry is always in list
+    if (!updatedUsers.some((u: any) => u.email === 'jerryhun47@gmail.com')) {
+      updatedUsers.push({
+        id: 'USR-ADMIN-01',
+        name: 'Jerry (Chief Administrator)',
+        email: 'jerryhun47@gmail.com',
+        role: 'admin',
+        level: 10,
+        creditScore: 100,
+        currency: 'USD',
+        currencySymbol: '$',
+      });
+    }
+
+    storage.users = updatedUsers;
+
+    if (wallet) {
+      storage.wallets = { ...(storage.wallets || {}), [enhancedUser.id]: wallet };
+    }
+
+    if (password) {
+      storage.passwords = { ...(storage.passwords || {}), [cleanEmail]: password };
+    }
+
+    storage.updatedAt = new Date().toISOString();
+    saveStorage(storage);
+
+    // Broadcast in real-time to all connected Admin consoles
+    broadcastToAdmins({
+      type: 'NEW_CLIENT_REGISTERED',
+      user: enhancedUser,
+      wallet,
+      timestamp: new Date().toISOString(),
+    });
+
+    console.log(`[Server Storage] Real-Time Client Registered: ${enhancedUser.name} (${enhancedUser.email}) from IP: ${enhancedUser.ipAddress}`);
+    res.json({ success: true, user: enhancedUser });
+  });
+
   // API Routes for backend persistent storage
   app.get('/api/storage', (req, res) => {
     const data = getStorage();

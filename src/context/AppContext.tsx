@@ -315,6 +315,7 @@ interface AppContextType {
   updateOrderStatus: (orderId: string, status: OrderStatus, adminNote?: string) => void;
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
+  clearAllClients: () => Promise<void>;
   resetDemoData: () => void;
   exportDataBackup: () => string;
   importDataBackup: (jsonString: string) => boolean;
@@ -735,9 +736,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, []);
 
-  // Real-Time Cross-Window / Cross-Tab Sync for Real-Time Client Registrations
+  // Real-Time SSE (Server-Sent Events) & Cross-Window Sync for Instant Client Registrations
   useEffect(() => {
+    let eventSource: EventSource | null = null;
     let channel: BroadcastChannel | null = null;
+
+    try {
+      if (typeof window !== 'undefined' && 'EventSource' in window) {
+        eventSource = new EventSource('/api/live-stream');
+        eventSource.onmessage = (e) => {
+          try {
+            const data = JSON.parse(e.data);
+            if (data && data.type === 'NEW_CLIENT_REGISTERED' && data.user) {
+              const newUser: User = data.user;
+              setUsers((prev) => {
+                const filtered = prev.filter((u) => u.email.toLowerCase() !== newUser.email.toLowerCase());
+                return [newUser, ...filtered];
+              });
+
+              if (data.wallet) {
+                setWallets((prev) => ({ ...prev, [newUser.id]: data.wallet }));
+              }
+
+              // If currently in Admin view, trigger alert chime & admin toast
+              const isAdminActive = currentUser?.role === 'admin' || currentViewState === 'admin';
+              if (isAdminActive) {
+                playNewClientTune();
+                setToasts((prev) => [
+                  {
+                    id: `toast-${Date.now()}`,
+                    message: `🎉 New Client Registered: ${newUser.name} (${newUser.email}) | IP: ${newUser.ipAddress || '104.28.192.44'} | ${newUser.countryFlag || '🌐'} ${newUser.country || 'Global'}`,
+                    type: 'success',
+                  },
+                  ...prev,
+                ]);
+              }
+            }
+          } catch {}
+        };
+      }
+    } catch (e) {}
+
     try {
       if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
         channel = new BroadcastChannel('ebuy_partner_events');
@@ -745,24 +784,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (event.data && event.data.type === 'NEW_CLIENT_REGISTERED' && event.data.user) {
             const newUser: User = event.data.user;
             setUsers((prev) => {
-              if (prev.some((u) => u.email.toLowerCase() === newUser.email.toLowerCase())) {
-                return prev;
-              }
-              return [newUser, ...prev];
+              const filtered = prev.filter((u) => u.email.toLowerCase() !== newUser.email.toLowerCase());
+              return [newUser, ...filtered];
             });
 
-            // Play the celebratory registration tune in the Admin window!
-            playNewClientTune();
-
-            // Display live registration banner
-            setToasts((prev) => [
-              {
-                id: `toast-${Date.now()}`,
-                message: `🎉 Real-Time Client Registered: ${newUser.name} (${newUser.email}) from ${newUser.countryFlag || '🌐'} ${newUser.country || 'Global'} [IP: ${newUser.ipAddress || '104.28.192.44'}]`,
-                type: 'success',
-              },
-              ...prev,
-            ]);
+            const isAdminActive = currentUser?.role === 'admin' || currentViewState === 'admin';
+            if (isAdminActive) {
+              playNewClientTune();
+              setToasts((prev) => [
+                {
+                  id: `toast-${Date.now()}`,
+                  message: `🎉 New Client Registered: ${newUser.name} (${newUser.email}) | IP: ${newUser.ipAddress || '104.28.192.44'} | ${newUser.countryFlag || '🌐'} ${newUser.country || 'Global'}`,
+                  type: 'success',
+                },
+                ...prev,
+              ]);
+            }
           }
         };
       }
@@ -781,10 +818,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     window.addEventListener('storage', handleStorageEvent);
 
     return () => {
+      if (eventSource) eventSource.close();
       if (channel) channel.close();
       window.removeEventListener('storage', handleStorageEvent);
     };
-  }, []);
+  }, [currentUser, currentViewState]);
+
+  // Periodic Polling when Admin is logged in to ensure zero missed clients
+  useEffect(() => {
+    if (currentUser?.role !== 'admin' && currentViewState !== 'admin') return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch('/api/storage');
+        if (!res.ok) return;
+        const json = await res.json();
+        if (json.success && json.data && Array.isArray(json.data.users)) {
+          const serverUsers: User[] = json.data.users;
+          setUsers((prev) => {
+            // Check if there are new users
+            const existingEmails = new Set(prev.map((u) => u.email.toLowerCase()));
+            const newUsers = serverUsers.filter((u) => !existingEmails.has(u.email.toLowerCase()));
+            if (newUsers.length > 0) {
+              // New user found via background check!
+              playNewClientTune();
+              return [...newUsers, ...prev];
+            }
+            return prev;
+          });
+        }
+      } catch (e) {}
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [currentUser, currentViewState]);
 
   // Backend Persistent Storage Sync (Debounced Auto-Save to server file)
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -2210,27 +2277,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCurrentUser(newUser);
     setCurrentView('home');
 
-    // Play special registration tune
-    playNewClientTune();
-
-    // Broadcast across open windows & tabs so Admin sees new client in real-time
-    try {
-      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
-        const ch = new BroadcastChannel('ebuy_partner_events');
-        ch.postMessage({ type: 'NEW_CLIENT_REGISTERED', user: newUser });
-        ch.close();
-      }
-    } catch (e) {}
-
-    // Save directly to backend storage endpoint immediately
-    fetch('/api/storage', {
+    // Send new client registration to backend API endpoint immediately
+    fetch('/api/clients/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        users: [newUser, ...users.filter((u) => u.email.toLowerCase() !== cleanEmail)],
-        wallets: { ...wallets, [newUserId]: newWallet },
+        user: newUser,
+        wallet: newWallet,
+        password: pass,
       }),
-    }).catch(() => {});
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.user) {
+          setUsers((prev) => [data.user, ...prev.filter((u) => u.email.toLowerCase() !== cleanEmail)]);
+        }
+      })
+      .catch((e) => console.warn('Registration API sync error:', e));
+
+    // Broadcast across open windows & tabs so Admin Jerry console receives real-time notification
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        const ch = new BroadcastChannel('ebuy_partner_events');
+        ch.postMessage({ type: 'NEW_CLIENT_REGISTERED', user: newUser, wallet: newWallet });
+        ch.close();
+      }
+    } catch (e) {}
 
     // Automatically sync new registrant to Firebase Firestore
     syncUserToFirestore(newUser).catch((err) => console.warn('Firebase Firestore sync error:', err));
@@ -2249,6 +2321,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setNotifications((prev) => [adminNotif, ...prev]);
 
+    // Clean client greeting (Zero IP / system telemetry shown to client)
     showToast(`Welcome ${name}! Your Free Basic Trial is now active. Complete 4 trial tasks to earn your $80 reward.`, 'success');
     return true;
   };
@@ -2436,6 +2509,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     return { success: true, earnedAmount: rewardEarned, isCompletedLevelQuota: isCompleted };
+  };
+
+  const clearAllClients = async () => {
+    const adminUser = INITIAL_USERS[0];
+    const adminWallet = INITIAL_WALLETS['USR-ADMIN-01'];
+
+    setUsers([adminUser]);
+    setWallets({ ['USR-ADMIN-01']: adminWallet });
+    setOrders([]);
+    setDeposits([]);
+    setWithdrawals([]);
+    setProductTasks([]);
+    setFailedCardPayments([]);
+    setRegisteredPasswords({ 'jerryhun47@gmail.com': 'tesla@123' });
+
+    localStorage.setItem('ebuy_partner_users', JSON.stringify([adminUser]));
+    localStorage.setItem('ebuy_partner_wallets', JSON.stringify({ ['USR-ADMIN-01']: adminWallet }));
+    localStorage.setItem('ebuy_partner_orders', JSON.stringify([]));
+    localStorage.setItem('ebuy_partner_deposits', JSON.stringify([]));
+    localStorage.setItem('ebuy_partner_withdrawals', JSON.stringify([]));
+    localStorage.setItem('ebuy_partner_passwords', JSON.stringify({ 'jerryhun47@gmail.com': 'tesla@123' }));
+
+    try {
+      await fetch('/api/storage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          users: [adminUser],
+          wallets: { ['USR-ADMIN-01']: adminWallet },
+          orders: [],
+          deposits: [],
+          withdrawals: [],
+          productTasks: [],
+          passwords: { 'jerryhun47@gmail.com': 'tesla@123' },
+        }),
+      });
+    } catch {}
+
+    showToast('All previous client records deleted successfully. Only Master Admin Jerry remains.', 'info');
   };
 
   const resetDemoData = () => {
@@ -2651,6 +2763,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateOrderStatus,
         markNotificationRead,
         markAllNotificationsRead,
+        clearAllClients,
         resetDemoData,
         exportDataBackup,
         importDataBackup,

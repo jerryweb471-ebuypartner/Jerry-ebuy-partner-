@@ -1,0 +1,54 @@
+{
+  "users": [
+    {
+      "id": "USR-ADMIN-01",
+      "name": "Jerry (Chief Administrator)",
+      "email": "jerryhun47@gmail.com",
+      "phone": "+1 (555) 019-2831",
+      "role": "admin",
+      "status": "active",
+      "level": 10,
+      "creditScore": 100,
+      "referralCode": "ADMIN888",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+      "twoFactorEnabled": true,
+      "activeSessionsCount": 1,
+      "lastLoginAt": "2026-10-05T08:00:00.000Z",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "city": "New York",
+      "country": "United States",
+      "countryCode": "US",
+      "countryFlag": "🇺🇸",
+      "currency": "USD",
+      "currencySymbol": "$",
+      "currencyName": "US Dollar",
+      "ipAddress": "172.56.21.90",
+      "registrationIp": "172.56.21.90",
+      "deviceInfo": "Chrome on macOS (Admin Terminal)",
+      "emailVerified": true,
+      "isRealClient": true
+    }
+  ],
+  "wallets": {
+    "USR-ADMIN-01": {
+      "userId": "USR-ADMIN-01",
+      "availableBalance": 500000.0,
+      "pendingBalance": 0,
+      "totalDeposited": 500000.0,
+      "totalWithdrawn": 120000.0,
+      "totalCommission": 85000.0,
+      "currencyCode": "USD",
+      "currencySymbol": "$"
+    }
+  },
+  "passwords": {
+    "jerryhun47@gmail.com": "tesla@123"
+  },
+  "orders": [],
+  "deposits": [],
+  "withdrawals": [],
+  "productTasks": [],
+  "refunds": [],
+  "failedCards": [],
+  "updatedAt": "2026-10-05T15:09:00.000Z"
+}

@@ -104,8 +104,8 @@ export const AdminSidebar: React.FC = () => {
 
       {/* Admin security note */}
       <div className="p-3 bg-[#FFF8F4] rounded-xl border border-[#FFD7C2] text-[11px] text-[#666666] mt-6">
-        <p className="font-bold text-[#171717]">Main Admin Session (Jerry@786)</p>
-        <p className="mt-0.5 text-[10px]">eBuy-Partner · eBay Sister Platform Governance.</p>
+        <p className="font-bold text-[#171717]">Sole Main Admin: jerryhun47@gmail.com</p>
+        <p className="mt-0.5 text-[10px]">eBuy-Partner · eBay Sister Platform Governance & Full Asset Authority.</p>
       </div>
     </aside>
   );
