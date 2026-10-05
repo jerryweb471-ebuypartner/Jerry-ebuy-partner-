@@ -163,14 +163,14 @@ export const AdminUsers: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E7EB] font-sans">
-              {filteredUsers.map((user) => {
+              {filteredUsers.map((user, idx) => {
                 const userWallet = wallets[user.id];
                 const userOrdersList = orders.filter((o) => o.userId === user.id);
                 const isActive = user.status === 'active';
                 const isSuspended = user.status === 'suspended';
 
                 return (
-                  <tr key={user.id} className="hover:bg-[#FFF8F4]/50 transition-colors">
+                  <tr key={`${user.id}-${idx}`} className="hover:bg-[#FFF8F4]/50 transition-colors">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         <img

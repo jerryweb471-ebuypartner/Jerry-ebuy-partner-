@@ -68,11 +68,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth }) => {
               <div className="flex items-center gap-3 pt-1">
                 <EBuyPartnerLogo size={52} />
                 <div>
-                  <h2 className="text-xl sm:text-2xl font-black text-[#171717] tracking-tight">
+                  <h2 className="text-xl sm:text-2xl font-black text-[#171717] tracking-tight leading-none">
                     eBuy-Partner
                   </h2>
-                  <p className="text-xs font-bold text-[#0064D2]">
-                    Official eBay Promotional Sister Network
+                  <p className="text-[11px] sm:text-xs text-gray-500 font-medium tracking-tight mt-1">
+                    (With eBay Registered Company)
                   </p>
                 </div>
               </div>

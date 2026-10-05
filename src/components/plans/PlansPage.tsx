@@ -160,28 +160,28 @@ export const PlansPage: React.FC<PlansPageProps> = ({ onOpenDepositForPlan }) =>
             <div
               key={plan.level}
               onClick={() => !isPlan0 && setSelectedPlanLevel(plan.level)}
-              className={`w-[260px] sm:w-[295px] shrink-0 snap-start rounded-[18px] bg-white border transition-all duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden group ${
+              className={`w-[285px] sm:w-[320px] shrink-0 snap-start rounded-2xl bg-white border-2 transition-all duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden group ${
                 isCurrent
-                  ? 'border-[#16A34A] shadow-[0_12px_30px_rgba(22,163,74,0.12)] ring-2 ring-[#16A34A]/20'
+                  ? 'border-emerald-500 shadow-[0_12px_30px_rgba(22,163,74,0.15)] ring-2 ring-emerald-500/20'
                   : isSelected
-                  ? 'border-[#F4511E] shadow-[0_14px_35px_rgba(244,81,30,0.18)] ring-2 ring-[#F4511E]/20 -translate-y-1 bg-gradient-to-b from-[#FFFDFB] to-white'
-                  : 'border-[#E5E7EB] shadow-[0_8px_25px_rgba(0,0,0,0.06)] hover:border-[#FF8A3D] hover:shadow-[0_14px_35px_rgba(244,81,30,0.12)]'
+                  ? 'border-[#F4511E] shadow-[0_14px_35px_rgba(244,81,30,0.2)] ring-2 ring-[#F4511E]/25 -translate-y-1 bg-gradient-to-b from-[#FFFDFB] to-white'
+                  : 'border-slate-300 shadow-[0_8px_20px_rgba(0,0,0,0.06)] hover:border-slate-400 hover:shadow-[0_14px_30px_rgba(0,0,0,0.1)]'
               }`}
             >
               {/* Top Stripe Accent */}
               <div
-                className={`h-1.5 w-full ${
+                className={`h-2 w-full ${
                   isCurrent
                     ? 'bg-[#16A34A]'
                     : isSelected
                     ? 'bg-gradient-to-r from-[#F4511E] via-[#FF6D00] to-[#FF8A3D]'
                     : isPlan0
                     ? 'bg-[#FF8A3D]'
-                    : 'bg-[#E5E7EB]'
+                    : 'bg-gradient-to-r from-[#F4511E] to-[#FF8A3D]'
                 }`}
               />
 
-              <div className="p-4 sm:p-5 space-y-3.5">
+              <div className="p-5 sm:p-5.5 space-y-4">
                 {/* Level Tag & Status */}
                 <div className="flex items-center justify-between">
                   <span

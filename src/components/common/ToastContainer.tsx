@@ -9,7 +9,7 @@ export const ToastContainer: React.FC = () => {
 
   return (
     <div
-      className="fixed top-[max(0.75rem,env(safe-area-inset-top))] left-3 right-3 sm:left-1/2 sm:-translate-x-1/2 sm:w-auto sm:max-w-md z-50 flex flex-col items-center gap-2 pointer-events-none"
+      className="fixed top-[max(4.75rem,env(safe-area-inset-top))] left-3 right-3 sm:left-1/2 sm:-translate-x-1/2 sm:w-auto sm:max-w-md z-50 flex flex-col items-center gap-2 pointer-events-none"
       aria-live="polite"
     >
       {toasts.map((toast) => {

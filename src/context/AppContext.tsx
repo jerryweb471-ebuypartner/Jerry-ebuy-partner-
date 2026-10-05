@@ -380,9 +380,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (saved) {
       try {
         const parsed: User[] = JSON.parse(saved);
-        const existingEmails = new Set(parsed.map((u) => u.email.toLowerCase()));
-        const missingInitials = INITIAL_USERS.filter((u) => !existingEmails.has(u.email.toLowerCase()));
-        return [...parsed, ...missingInitials];
+        const existingEmails = new Set(parsed.map((u) => (u.email || '').toLowerCase()));
+        const missingInitials = INITIAL_USERS.filter((u) => !existingEmails.has((u.email || '').toLowerCase()));
+        const combined = [...parsed, ...missingInitials];
+
+        // Strict Deduplication by both Unique Email and Unique User ID
+        const seenIds = new Set<string>();
+        const seenEmails = new Set<string>();
+        const deduplicated: User[] = [];
+
+        for (const u of combined) {
+          const emailLower = (u.email || '').toLowerCase().trim();
+          if (!emailLower || seenEmails.has(emailLower)) continue;
+          seenEmails.add(emailLower);
+
+          let safeId = u.id || `USR-${Math.floor(1000 + Math.random() * 9000)}`;
+          if (seenIds.has(safeId)) {
+            safeId = `USR-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
+          }
+          seenIds.add(safeId);
+          deduplicated.push({ ...u, id: safeId, email: emailLower });
+        }
+
+        return deduplicated.length > 0 ? deduplicated : INITIAL_USERS;
       } catch {
         return INITIAL_USERS;
       }
@@ -1705,16 +1725,54 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const notif: Notification = {
           id: `NOTIF-${Date.now()}`,
           userId,
-          title: diff > 0 ? 'Balance Credited by Admin' : 'Balance Adjusted',
+          title: diff > 0 ? 'Balance Credited' : 'Balance Updated',
           message: diff > 0
-            ? `Administrator Jerry@786 credited +${formatCurrency(diff)} to your account balance. Your new available balance is ${formatCurrency(newBal)}.`
-            : `Administrator Jerry@786 adjusted your account balance by -${formatCurrency(Math.abs(diff))}. New balance: ${formatCurrency(newBal)}.`,
-          type: 'system',
+            ? `Your wallet balance has been credited with +${formatCurrency(diff)}. Your new available balance is ${formatCurrency(newBal)}.`
+            : `Your wallet balance has been adjusted by -${formatCurrency(Math.abs(diff))}. Your current available balance is ${formatCurrency(newBal)}.`,
+          type: 'deposit',
           read: false,
           createdAt: now,
-          link: 'wallet',
+          link: 'profile',
         };
         setNotifications((prev) => [notif, ...prev]);
+
+        // If updated user is currently logged in, trigger live toast popup!
+        if (currentUser && currentUser.id === userId) {
+          showToast(
+            diff > 0
+              ? `+${formatCurrency(diff)} credited to your account! Available: ${formatCurrency(newBal)}`
+              : `Balance updated: ${formatCurrency(newBal)}`,
+            'success'
+          );
+        }
+      }
+
+      // Sync updated wallet to Firebase Firestore
+      syncWalletToFirestore({
+        userId,
+        availableBalance: newBal,
+      }).catch(() => {});
+    }
+
+    if (data.level !== undefined) {
+      const targetUser = users.find((u) => u.id === userId);
+      if (targetUser && targetUser.level !== data.level) {
+        const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
+        const levelNotif: Notification = {
+          id: `NOTIF-${Date.now()}-LVL`,
+          userId,
+          title: 'Membership Tier Updated',
+          message: `Your account level has been updated to Level ${data.level}. Your daily product task quota and potential dividends have been updated accordingly.`,
+          type: 'level_up',
+          read: false,
+          createdAt: now,
+          link: 'plans',
+        };
+        setNotifications((prev) => [levelNotif, ...prev]);
+
+        if (currentUser && currentUser.id === userId) {
+          showToast(`Your account has been upgraded to Level ${data.level}!`, 'success');
+        }
       }
     }
   };

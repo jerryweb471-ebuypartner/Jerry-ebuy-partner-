@@ -372,17 +372,15 @@ export const HomePage: React.FC<HomePageProps> = ({
             return (
               <div
                 key={plan.level}
-                className={`w-[260px] sm:w-[285px] shrink-0 snap-start rounded-2xl bg-white border transition-all duration-300 flex flex-col justify-between relative overflow-hidden group ${
+                className={`w-[285px] sm:w-[315px] shrink-0 snap-start rounded-2xl bg-white border-2 transition-all duration-300 flex flex-col justify-between relative overflow-hidden group ${
                   isUserActivePlan
-                    ? 'border-[#16A34A] shadow-[0_12px_30px_rgba(22,163,74,0.12)] ring-2 ring-[#16A34A]/20'
-                    : isPlan0
-                    ? 'border-[#FFD7C2] shadow-xs bg-[#FFFDFB]'
-                    : 'border-[#E5E7EB] shadow-xs hover:border-[#F4511E] hover:shadow-[0_10px_25px_rgba(244,81,30,0.1)]'
+                    ? 'border-emerald-500 shadow-[0_12px_30px_rgba(22,163,74,0.15)] ring-2 ring-emerald-500/20'
+                    : 'border-slate-300 shadow-[0_8px_20px_rgba(0,0,0,0.06)] hover:border-slate-400 hover:shadow-[0_12px_28px_rgba(0,0,0,0.1)]'
                 }`}
               >
                 {/* Top Accent Stripe */}
                 <div
-                  className={`h-1.5 w-full ${
+                  className={`h-2 w-full ${
                     isUserActivePlan
                       ? 'bg-gradient-to-r from-[#16A34A] to-[#22C55E]'
                       : isPlan0
@@ -391,7 +389,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   }`}
                 />
 
-                <div className="p-4 space-y-3">
+                <div className="p-5 space-y-3.5">
                   <div className="flex items-center justify-between">
                     <span
                       className={`px-2.5 py-0.5 rounded-full text-xs font-black ${
