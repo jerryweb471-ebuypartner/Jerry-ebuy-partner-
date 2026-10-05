@@ -32,6 +32,7 @@ export interface User {
   currencyName?: string;
   authProvider?: 'email' | 'google';
   trialCompleted?: boolean;
+  creditScore?: number; // 0 to 100, default 100
 }
 
 export interface UserLevel {

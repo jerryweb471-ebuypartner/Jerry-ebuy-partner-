@@ -43,6 +43,7 @@ export const AdminUsers: React.FC = () => {
   const [balanceAdjustmentType, setBalanceAdjustmentType] = useState<'add' | 'deduct' | 'set'>('add');
   const [targetLevel, setTargetLevel] = useState<number>(1);
   const [targetStatus, setTargetStatus] = useState<UserStatus>('active');
+  const [targetCreditScore, setTargetCreditScore] = useState<number>(100);
   const [newPassword, setNewPassword] = useState<string>('');
   const [auditNote, setAuditNote] = useState<string>('');
 
@@ -60,10 +61,10 @@ export const AdminUsers: React.FC = () => {
   });
 
   const handleOpenAssetControl = (user: User) => {
-    const userWallet = wallets[user.id] || { availableBalance: 0 };
     setAssetControlUser(user);
     setTargetLevel(user.level ?? 1);
     setTargetStatus(user.status);
+    setTargetCreditScore(user.creditScore ?? 100);
     setBalanceAdjustmentAmount('');
     setBalanceAdjustmentType('add');
     setNewPassword('');
@@ -100,6 +101,7 @@ export const AdminUsers: React.FC = () => {
       availableBalance: newBalance,
       level: targetLevel,
       status: targetStatus,
+      creditScore: targetCreditScore,
       newPassword: newPassword.trim() || undefined,
       auditNote: auditNote || 'Administrative balance adjustment',
     });
@@ -156,6 +158,7 @@ export const AdminUsers: React.FC = () => {
                 <th className="px-5 py-3.5">Client & ID</th>
                 <th className="px-5 py-3.5">Country & Region</th>
                 <th className="px-5 py-3.5">Account Status</th>
+                <th className="px-5 py-3.5">Credit Score</th>
                 <th className="px-5 py-3.5">Level Tier</th>
                 <th className="px-5 py-3.5">Available Balance</th>
                 <th className="px-5 py-3.5">Orders</th>
@@ -212,6 +215,13 @@ export const AdminUsers: React.FC = () => {
                           {user.status.replace('_', ' ')}
                         </span>
                       </div>
+                    </td>
+
+                    <td className="px-5 py-4 font-mono">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-800 border border-slate-200">
+                        <Shield className="w-3 h-3 text-[#F4511E]" />
+                        <span>{user.creditScore ?? 100}/100</span>
+                      </span>
                     </td>
 
                     <td className="px-5 py-4">
@@ -339,10 +349,10 @@ export const AdminUsers: React.FC = () => {
               />
             </div>
 
-            {/* Level Selector (0 to 10) */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Level Selector, Status & Credit Score */}
+            <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="block font-bold text-[#171717] mb-1">Set Level Tier (0–10)</label>
+                <label className="block font-bold text-[#171717] mb-1">Set Level (0–10)</label>
                 <select
                   value={targetLevel}
                   onChange={(e) => setTargetLevel(Number(e.target.value))}
@@ -364,9 +374,21 @@ export const AdminUsers: React.FC = () => {
                   className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-white font-medium"
                 >
                   <option value="active">Active</option>
-                  <option value="pending_verification">Pending Verification</option>
-                  <option value="suspended">Suspended</option>
+                  <option value="pending_verification">Pending</option>
+                  <option value="suspended">Deactive/Suspended</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-[#171717] mb-1">Credit Score (0–100)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={targetCreditScore}
+                  onChange={(e) => setTargetCreditScore(Math.min(100, Math.max(0, Number(e.target.value))))}
+                  className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-white font-bold font-mono text-[#171717]"
+                />
               </div>
             </div>
 

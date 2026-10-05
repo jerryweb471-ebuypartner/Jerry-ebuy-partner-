@@ -72,7 +72,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth }) => {
                     eBuy-Partner
                   </h2>
                   <p className="text-[11px] sm:text-xs text-gray-500 font-medium tracking-tight mt-1">
-                    (With eBay Registered Company)
+                    With eBay Registered Company
                   </p>
                 </div>
               </div>

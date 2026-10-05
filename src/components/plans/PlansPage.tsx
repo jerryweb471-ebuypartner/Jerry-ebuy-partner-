@@ -160,7 +160,7 @@ export const PlansPage: React.FC<PlansPageProps> = ({ onOpenDepositForPlan }) =>
             <div
               key={plan.level}
               onClick={() => !isPlan0 && setSelectedPlanLevel(plan.level)}
-              className={`w-[285px] sm:w-[320px] shrink-0 snap-start rounded-2xl bg-white border-2 transition-all duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden group ${
+              className={`w-[290px] sm:w-[325px] min-h-[480px] shrink-0 snap-start rounded-2xl bg-white border-2 transition-all duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden group ${
                 isCurrent
                   ? 'border-emerald-500 shadow-[0_12px_30px_rgba(22,163,74,0.15)] ring-2 ring-emerald-500/20'
                   : isSelected

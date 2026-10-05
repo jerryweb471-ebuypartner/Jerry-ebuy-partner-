@@ -298,6 +298,7 @@ interface AppContextType {
       availableBalance?: number;
       level?: number;
       status?: User['status'];
+      creditScore?: number;
       newPassword?: string;
       auditNote?: string;
     }
@@ -1643,6 +1644,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       availableBalance?: number;
       level?: number;
       status?: User['status'];
+      creditScore?: number;
       newPassword?: string;
       auditNote?: string;
     }
@@ -1654,6 +1656,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ...u,
             level: data.level !== undefined ? data.level : u.level,
             status: data.status !== undefined ? data.status : u.status,
+            creditScore: data.creditScore !== undefined ? Math.min(100, Math.max(0, data.creditScore)) : (u.creditScore ?? 100),
             currency: 'USD',
             currencySymbol: '$',
           };
@@ -1669,6 +1672,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               ...prev,
               level: data.level !== undefined ? data.level : prev.level,
               status: data.status !== undefined ? data.status : prev.status,
+              creditScore: data.creditScore !== undefined ? Math.min(100, Math.max(0, data.creditScore)) : (prev.creditScore ?? 100),
               currency: 'USD',
               currencySymbol: '$',
             }

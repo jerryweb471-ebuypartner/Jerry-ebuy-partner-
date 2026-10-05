@@ -99,7 +99,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCart, onOpenAuth }) => {
                     eBuy<span className="text-[#F4511E]">-Partner</span>
                   </span>
                   <span className="text-[9px] sm:text-[10px] text-gray-500 font-medium tracking-tight mt-0.5 whitespace-nowrap">
-                    (With eBay Registered Company)
+                    With eBay Registered Company
                   </span>
                 </div>
               </button>

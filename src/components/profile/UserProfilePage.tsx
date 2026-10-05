@@ -248,7 +248,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
             </div>
           </div>
 
-          {/* 6 Metric Sections (Guest Locked Values) */}
+          {/* 4 Metric Sections (Guest Mode) */}
           <div>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -262,92 +262,74 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
               </span>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-              {/* 1. Available Balance */}
-              <div className="bg-white p-4 rounded-2xl border border-[#E2E8F0] shadow-xs">
-                <span className="text-[11px] text-[#64748B] font-bold block uppercase tracking-wider">
-                  Available Balance
-                </span>
-                <span className="text-xl sm:text-2xl font-black text-slate-400 mt-1.5 block font-mono">
-                  $0.00
-                </span>
-                <span className="text-[10px] text-amber-600 font-bold mt-1 block">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4.5">
+              {/* Box 1: Withdrawable Balance */}
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border-2 border-slate-300 shadow-xs flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#64748B]">
+                    <span className="text-base leading-none">💰</span>
+                    <span className="uppercase tracking-wider">Withdrawable Balance</span>
+                  </div>
+                  <span className="text-xl sm:text-2xl font-black text-slate-400 mt-2 block font-mono">
+                    $0.00
+                  </span>
+                </div>
+                <span className="text-[10px] text-amber-600 font-bold mt-2 block">
                   ● Sign in to view balance
                 </span>
               </div>
 
-              {/* 2. Total Commission */}
-              <div className="bg-white p-4 rounded-2xl border border-[#E2E8F0] shadow-xs">
-                <span className="text-[11px] text-[#64748B] font-bold block uppercase tracking-wider">
-                  Total Commission
-                </span>
-                <span className="text-xl sm:text-2xl font-black text-slate-400 mt-1.5 block font-mono">
-                  $0.00
-                </span>
-                <span className="text-[10px] text-[#64748B] font-semibold mt-1 block">
-                  From Completed Tasks
-                </span>
-              </div>
-
-              {/* 3. Total Withdrawn */}
-              <div className="bg-white p-4 rounded-2xl border border-[#E2E8F0] shadow-xs">
-                <span className="text-[11px] text-[#64748B] font-bold block uppercase tracking-wider">
-                  Total Withdrawn
-                </span>
-                <span className="text-xl sm:text-2xl font-black text-slate-400 mt-1.5 block font-mono">
-                  $0.00
-                </span>
-                <span className="text-[10px] text-[#64748B] font-semibold mt-1 block">
-                  100% Disbursed
-                </span>
-              </div>
-
-              {/* 4. Total Deposited */}
-              <div className="bg-white p-4 rounded-2xl border border-[#E2E8F0] shadow-xs">
-                <span className="text-[11px] text-[#64748B] font-bold block uppercase tracking-wider">
-                  Total Deposited
-                </span>
-                <span className="text-xl sm:text-2xl font-black text-slate-400 mt-1.5 block font-mono">
-                  $0.00
-                </span>
-                <span className="text-[10px] text-[#64748B] font-semibold mt-1 block">
-                  Active Tier Liquidity
-                </span>
-              </div>
-
-              {/* 5. Daily Task Quota */}
-              <div className="bg-white p-4 rounded-2xl border border-[#E2E8F0] shadow-xs">
-                <span className="text-[11px] text-[#64748B] font-bold block uppercase tracking-wider">
-                  Daily Task Quota
-                </span>
-                <span className="text-xl sm:text-2xl font-black text-[#F4511E] mt-1.5 block font-mono">
-                  4 Tasks/Day
-                </span>
-                <span className="text-[10px] text-[#64748B] font-semibold mt-1 block">
-                  Basic Free Trial ($0 Deposit)
-                </span>
-              </div>
-
-              {/* 6. Active Plan & Status */}
-              <div className="bg-white p-4 rounded-2xl border border-[#E2E8F0] shadow-xs flex flex-col justify-between">
+              {/* Box 2: Total Invested Amount */}
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border-2 border-slate-300 shadow-xs flex flex-col justify-between">
                 <div>
-                  <span className="text-[11px] text-[#64748B] font-bold block uppercase tracking-wider">
-                    Plan & Account Status
-                  </span>
-                  <div className="flex items-center gap-1.5 mt-1.5">
-                    <span className="w-2 h-2 rounded-full bg-slate-400" />
-                    <span className="text-sm font-black text-[#0F172A]">
-                      Guest Session
+                  <div className="flex items-center justify-between gap-1">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-[#64748B]">
+                      <span className="text-base leading-none">📈</span>
+                      <span className="uppercase tracking-wider">Invested Amount</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">
+                      Level 0
                     </span>
                   </div>
+                  <span className="text-xl sm:text-2xl font-black text-slate-400 mt-2 block font-mono">
+                    $0.00
+                  </span>
                 </div>
-                <button
-                  onClick={() => openAuthModal('login')}
-                  className="mt-2 text-[11px] font-bold text-[#F4511E] hover:text-[#E5390B] flex items-center gap-1 cursor-pointer"
-                >
-                  <span>Sign In / Activate Plan</span>
-                  <ArrowRight className="w-3 h-3" />
-                </button>
+                <span className="text-[10px] text-[#64748B] font-semibold mt-2 block">
+                  Basic Trial ($0 Deposit)
+                </span>
+              </div>
+
+              {/* Box 3: 1 Product Cart Commission */}
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border-2 border-slate-300 shadow-xs flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#64748B]">
+                    <span className="text-base leading-none">🛒</span>
+                    <span className="uppercase tracking-wider">1 Product Cart Reward</span>
+                  </div>
+                  <span className="text-xl sm:text-2xl font-black text-[#F4511E] mt-2 block font-mono">
+                    +$20.00
+                  </span>
+                </div>
+                <span className="text-[10px] text-[#64748B] font-semibold mt-2 block">
+                  Per 1 product added to cart & rated
+                </span>
+              </div>
+
+              {/* Box 4: Total Commission Earned */}
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border-2 border-slate-300 shadow-xs flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#64748B]">
+                    <span className="text-base leading-none">💎</span>
+                    <span className="uppercase tracking-wider">Total Commission Earned</span>
+                  </div>
+                  <span className="text-xl sm:text-2xl font-black text-slate-400 mt-2 block font-mono">
+                    $0.00
+                  </span>
+                </div>
+                <span className="text-[10px] text-[#64748B] font-semibold mt-2 block">
+                  Sign in to view earnings
+                </span>
               </div>
             </div>
           </div>
@@ -473,7 +455,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
 
       {/* 2. UNIFIED PROFESSIONAL USER PROFILE & BALANCES CARD (Light Gray Background) */}
       <section className="bg-[#F8FAFC] rounded-3xl border border-[#E2E8F0] p-5 sm:p-7 shadow-sm space-y-6">
-        {/* Top Profile Header: Avatar, Name (bold) + Level Badge, Gmail below, Active Plan & User ID on opposite side */}
+        {/* Top Profile Header: Avatar, Name + Level Badge, Gmail, Status, Credit Score */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-[#E2E8F0]">
           <div className="flex items-center gap-4">
             <img
@@ -481,16 +463,22 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
               alt={currentUser.name}
               className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover ring-2 ring-[#F4511E]/30 shadow-xs flex-shrink-0 bg-white"
             />
-            <div className="space-y-1">
-              {/* Row 1: Bold Name + Level badge */}
+            <div className="space-y-1.5">
+              {/* Row 1: Bold Name + Level badge + Status */}
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-black text-[#0F172A] tracking-tight">{currentUser.name}</h1>
                 <span className="text-xs font-black text-[#F4511E] bg-[#FFF4ED] px-3 py-0.5 rounded-full border border-[#FFD7C2] shadow-2xs">
                   Level {currentUser.level}
                 </span>
-                <span className="text-xs font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
-                  <span>{currentUser.countryFlag || '🇺🇸'}</span>
-                  <span>{currentUser.country || 'United States'}</span>
+                <span
+                  className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border flex items-center gap-1 ${
+                    currentUser.status === 'active'
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                      : 'bg-rose-50 text-rose-700 border-rose-200'
+                  }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${currentUser.status === 'active' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                  <span>Status: {currentUser.status === 'active' ? 'Active' : 'Deactive'}</span>
                 </span>
               </div>
 
@@ -500,14 +488,25 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
                 <span>{currentUser.email}</span>
               </p>
 
-              {/* Row 3: Active Plan & User ID */}
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-[#64748B] pt-0.5">
+              {/* Row 3: Credit Score, Active Plan & User ID */}
+              <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 text-xs text-[#64748B] pt-0.5">
+                {/* Credit Score Badge */}
+                <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-lg border border-[#E2E8F0] shadow-2xs">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#F4511E]" />
+                  <span className="text-[11px] text-[#64748B]">Credit Score:</span>
+                  <strong className="text-[#0F172A] font-black font-mono">
+                    {currentUser.creditScore ?? 100}/100
+                  </strong>
+                  <span className="text-[10px] text-emerald-600 font-bold">● High</span>
+                </div>
+
                 <div className="flex items-center gap-1 bg-white px-2.5 py-1 rounded-lg border border-[#E2E8F0] shadow-2xs">
                   <span className="text-[11px] text-[#94A3B8]">Active Plan:</span>
-                  <strong className="text-[#0F172A] font-extrabold">{currentLevelConfig?.name || 'Basic Trial Plan'}</strong>
+                  <strong className="text-[#0F172A] font-extrabold">{currentLevelConfig?.name || 'Basic Trial'}</strong>
                 </div>
+
                 <div className="flex items-center gap-1 bg-white px-2.5 py-1 rounded-lg border border-[#E2E8F0] shadow-2xs font-mono">
-                  <span className="text-[11px] text-[#94A3B8]">User ID:</span>
+                  <span className="text-[11px] text-[#94A3B8]">ID:</span>
                   <strong className="text-[#0F172A] font-bold">{currentUser.id}</strong>
                 </div>
               </div>
@@ -526,13 +525,13 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
           </div>
         </div>
 
-        {/* Financial Balances & Account Metrics (6 Clean Sections) */}
+        {/* Financial Balances & Account Overview: Exactly 4 Boxes in 2 Rows x 2 Columns with Emojis & Gray Borders */}
         <div>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Wallet className="w-4 h-4 text-[#F4511E]" />
               <h2 className="text-xs font-black text-[#334155] uppercase tracking-wider">
-                Account Overview & Financial Balances ($ USD)
+                Account Overview & Balances ($ USD)
               </h2>
             </div>
             <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md">
@@ -540,92 +539,75 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
             </span>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-            {/* 1. Available Balance */}
-            <div className="bg-white p-4 rounded-2xl border border-[#E2E8F0] shadow-xs">
-              <span className="text-[11px] text-[#64748B] font-bold block uppercase tracking-wider">
-                Available Balance
-              </span>
-              <span className="text-xl sm:text-2xl font-black text-[#E5390B] mt-1.5 block font-mono">
-                {formatCurrency(userWallet?.availableBalance ?? 0)}
-              </span>
-              <span className="text-[10px] text-emerald-600 font-bold mt-1 block">
-                ● Ready for Withdrawal
-              </span>
-            </div>
-
-            {/* 2. Total Commission */}
-            <div className="bg-white p-4 rounded-2xl border border-[#E2E8F0] shadow-xs">
-              <span className="text-[11px] text-[#64748B] font-bold block uppercase tracking-wider">
-                Total Commission
-              </span>
-              <span className="text-xl sm:text-2xl font-black text-emerald-600 mt-1.5 block font-mono">
-                {formatCurrency(userWallet?.totalCommission ?? 0)}
-              </span>
-              <span className="text-[10px] text-[#64748B] font-semibold mt-1 block">
-                From Completed Tasks
-              </span>
-            </div>
-
-            {/* 3. Total Withdrawn */}
-            <div className="bg-white p-4 rounded-2xl border border-[#E2E8F0] shadow-xs">
-              <span className="text-[11px] text-[#64748B] font-bold block uppercase tracking-wider">
-                Total Withdrawn
-              </span>
-              <span className="text-xl sm:text-2xl font-black text-[#0F172A] mt-1.5 block font-mono">
-                {formatCurrency(userWallet?.totalWithdrawn ?? 0)}
-              </span>
-              <span className="text-[10px] text-[#64748B] font-semibold mt-1 block">
-                100% Disbursed
-              </span>
-            </div>
-
-            {/* 4. Total Deposited */}
-            <div className="bg-white p-4 rounded-2xl border border-[#E2E8F0] shadow-xs">
-              <span className="text-[11px] text-[#64748B] font-bold block uppercase tracking-wider">
-                Total Deposited
-              </span>
-              <span className="text-xl sm:text-2xl font-black text-[#0F172A] mt-1.5 block font-mono">
-                {formatCurrency(userWallet?.totalDeposited ?? 0)}
-              </span>
-              <span className="text-[10px] text-[#64748B] font-semibold mt-1 block">
-                Active Tier Liquidity
-              </span>
-            </div>
-
-            {/* 5. Daily Task Quota */}
-            <div className="bg-white p-4 rounded-2xl border border-[#E2E8F0] shadow-xs">
-              <span className="text-[11px] text-[#64748B] font-bold block uppercase tracking-wider">
-                Daily Task Quota
-              </span>
-              <span className="text-xl sm:text-2xl font-black text-[#F4511E] mt-1.5 block font-mono">
-                {currentLevelConfig?.dailyProductTasks ?? 4} Tasks/Day
-              </span>
-              <span className="text-[10px] text-[#64748B] font-semibold mt-1 block">
-                +{formatCurrency(currentLevelConfig?.earningPerProduct ?? 0.5)} per Task
-              </span>
-            </div>
-
-            {/* 6. Active Plan & Status */}
-            <div className="bg-white p-4 rounded-2xl border border-[#E2E8F0] shadow-xs flex flex-col justify-between">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4.5">
+            {/* Box 1: Withdrawable Balance (Top Left) */}
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border-2 border-slate-300 shadow-xs flex flex-col justify-between">
               <div>
-                <span className="text-[11px] text-[#64748B] font-bold block uppercase tracking-wider">
-                  Plan & Account Status
-                </span>
-                <div className="flex items-center gap-1.5 mt-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-sm font-black text-[#0F172A]">
-                    Level {currentUser.level} ({currentLevelConfig?.name || 'Basic Trial'})
-                  </span>
+                <div className="flex items-center gap-1.5 text-xs font-bold text-[#64748B]">
+                  <span className="text-base leading-none">💰</span>
+                  <span className="uppercase tracking-wider">Withdrawable Balance</span>
+                </div>
+                <div className="text-xl sm:text-2xl lg:text-3xl font-black text-[#E5390B] mt-2 font-mono">
+                  {formatCurrency(userWallet?.availableBalance ?? 0)}
                 </div>
               </div>
-              <button
-                onClick={() => setCurrentView('plans')}
-                className="mt-2 text-[11px] font-bold text-[#F4511E] hover:text-[#E5390B] flex items-center gap-1 cursor-pointer"
-              >
-                <span>Upgrade Tier</span>
-                <ArrowRight className="w-3 h-3" />
-              </button>
+              <span className="text-[10px] sm:text-[11px] text-emerald-600 font-bold mt-2 flex items-center gap-1">
+                <span>●</span>
+                <span>Ready for Instant Withdrawal</span>
+              </span>
+            </div>
+
+            {/* Box 2: Total Invested Amount + Level Badge (Top Right) */}
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border-2 border-slate-300 shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between gap-1">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#64748B]">
+                    <span className="text-base leading-none">📈</span>
+                    <span className="uppercase tracking-wider">Invested Amount</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#FFF4ED] text-[#F4511E] border border-[#FFD7C2]">
+                    Level {currentUser.level}
+                  </span>
+                </div>
+                <div className="text-xl sm:text-2xl lg:text-3xl font-black text-[#0F172A] mt-2 font-mono">
+                  {formatCurrency(userWallet?.totalDeposited ?? (currentLevelConfig?.requiredDeposit ?? 0))}
+                </div>
+              </div>
+              <span className="text-[10px] sm:text-[11px] text-[#64748B] font-semibold mt-2 block">
+                {currentLevelConfig?.name || 'Active Tier'} Security Deposit
+              </span>
+            </div>
+
+            {/* Box 3: 1 Product Cart Commission (Bottom Left) */}
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border-2 border-slate-300 shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-1.5 text-xs font-bold text-[#64748B]">
+                  <span className="text-base leading-none">🛒</span>
+                  <span className="uppercase tracking-wider">1 Product Cart Reward</span>
+                </div>
+                <div className="text-xl sm:text-2xl lg:text-3xl font-black text-[#F4511E] mt-2 font-mono">
+                  +{formatCurrency(currentLevelConfig?.earningPerProduct ?? 20)}
+                </div>
+              </div>
+              <span className="text-[10px] sm:text-[11px] text-[#64748B] font-semibold mt-2 block">
+                Per 1 product added to cart & rated
+              </span>
+            </div>
+
+            {/* Box 4: Total Commission Earned (Bottom Right) */}
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border-2 border-slate-300 shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-1.5 text-xs font-bold text-[#64748B]">
+                  <span className="text-base leading-none">💎</span>
+                  <span className="uppercase tracking-wider">Total Commission Earned</span>
+                </div>
+                <div className="text-xl sm:text-2xl lg:text-3xl font-black text-emerald-600 mt-2 font-mono">
+                  +{formatCurrency(userWallet?.totalCommission ?? 0)}
+                </div>
+              </div>
+              <span className="text-[10px] sm:text-[11px] text-emerald-700 font-bold mt-2 block">
+                Earned from verified cart evaluations
+              </span>
             </div>
           </div>
         </div>

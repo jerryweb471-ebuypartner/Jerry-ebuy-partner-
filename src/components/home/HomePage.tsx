@@ -372,7 +372,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             return (
               <div
                 key={plan.level}
-                className={`w-[285px] sm:w-[315px] shrink-0 snap-start rounded-2xl bg-white border-2 transition-all duration-300 flex flex-col justify-between relative overflow-hidden group ${
+                className={`w-[290px] sm:w-[320px] min-h-[460px] shrink-0 snap-start rounded-2xl bg-white border-2 transition-all duration-300 flex flex-col justify-between relative overflow-hidden group ${
                   isUserActivePlan
                     ? 'border-emerald-500 shadow-[0_12px_30px_rgba(22,163,74,0.15)] ring-2 ring-emerald-500/20'
                     : 'border-slate-300 shadow-[0_8px_20px_rgba(0,0,0,0.06)] hover:border-slate-400 hover:shadow-[0_12px_28px_rgba(0,0,0,0.1)]'
