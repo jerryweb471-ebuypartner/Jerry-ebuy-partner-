@@ -182,26 +182,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setErrorMessage(null);
   };
 
-  // Helper to send OTP with immediate SMS notification popup and audio chime
+  // Helper to send OTP with a clean 2-second delay and floating SMS popup arrival
   const dispatchDelayedOtp = (recipientName: string, purpose: 'register' | 'forgot_password' = 'register') => {
     setIsOtpDispatching(false);
+    setOtpNotification(null);
     setOtpInput('');
     setOtpCountdown(15);
     setCopiedOtp(false);
 
-    const newOtp = Math.floor(10000 + Math.random() * 90000).toString();
-    const otpMsg = `Dear ${recipientName || 'Partner'}, your OTP for eBuy-Partner is ${newOtp}. Please do not share it with anyone.`;
-    
-    setGeneratedOtp(newOtp);
-    setOtpNotification({
-      code: newOtp,
-      message: otpMsg,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-    });
+    // Pops up after 2 seconds as requested!
+    setTimeout(() => {
+      const newOtp = Math.floor(10000 + Math.random() * 90000).toString();
+      const otpMsg = `Dear ${recipientName || 'Partner'}, your OTP for eBuy-Partner is ${newOtp}. Please do not share it with anyone.`;
+      
+      setGeneratedOtp(newOtp);
+      setOtpNotification({
+        code: newOtp,
+        message: otpMsg,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      });
 
-    // Play audio chime automatically
-    playOtpTune();
-    showToast(otpMsg, 'info');
+      // Play audio chime automatically with the popup
+      playOtpTune();
+    }, 2000);
   };
 
   const handleCopyOtp = (codeToCopy: string) => {
@@ -837,77 +840,75 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         </form>
       )}
 
-      {/* 3. OTP VERIFICATION SCREEN (Green Border, Light Blue Body, Orange OTP, Copy Button & 15s Timer) */}
-      {mode === 'otp_verify' && (
-        <form onSubmit={handleVerifyOtpSubmit} className="space-y-3.5">
-          {/* Real-time SMS Message Notification Banner: Green Border, Light Blue Body, Orange OTP */}
-          {otpNotification && (
-            <div className="bg-[#F0F7FF] border-2 border-emerald-500 rounded-2xl p-3 sm:p-3.5 shadow-md animate-in fade-in slide-in-from-top-2 duration-300">
-              {/* Header: Sender & Controls */}
-              <div className="flex items-center justify-between pb-2 border-b border-sky-200/80">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs">
-                    <MessageSquare className="w-3.5 h-3.5" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-black text-sky-950">eBuy-Partner SMS</span>
-                      <span className="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-bold border border-emerald-300">
-                        Official
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={playOtpTune}
-                    className="p-1 rounded-md bg-white border border-sky-200 text-[#F4511E] hover:bg-orange-50 text-[10px] font-bold flex items-center gap-1 cursor-pointer shadow-2xs"
-                    title="Play SMS Tune"
-                  >
-                    <Volume2 className="w-3 h-3 text-[#F4511E]" />
-                    <span>Tune</span>
-                  </button>
-                  <span className="text-[10px] text-sky-700 font-mono">{otpNotification.time}</span>
-                </div>
+      {/* Floating Real SMS Push Notification Popup (Slides in after 2 seconds with tune) */}
+      {otpNotification && mode === 'otp_verify' && (
+        <div className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-[9999] w-[94%] max-w-sm sm:max-w-md bg-[#F0F7FF] border-2 border-emerald-500 rounded-2xl p-3.5 shadow-2xl animate-in slide-in-from-top-6 duration-300">
+          {/* Header: Sender & Controls */}
+          <div className="flex items-center justify-between pb-2 border-b border-sky-200/80">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs shrink-0">
+                <MessageSquare className="w-3.5 h-3.5" />
               </div>
-
-              {/* Message Body */}
-              <div className="mt-2.5 bg-white/90 rounded-xl border border-sky-200 p-3 text-left shadow-2xs">
-                <p className="text-xs text-sky-950 font-medium leading-relaxed">
-                  Dear <strong className="text-[#F4511E]">{pendingUserData?.name || 'Partner'}</strong>, your OTP for eBuy-Partner is{' '}
-                  <span className="font-mono font-black text-base text-[#F4511E] bg-[#FFF4ED] px-2 py-0.5 rounded-lg border border-[#FFD7C2] tracking-wider inline-block">
-                    {otpNotification.code}
-                  </span>
-                  . Please do not share it with anyone.
-                </p>
-
-                {/* 1-Click Copy OTP Button */}
-                <div className="mt-2.5 pt-2 border-t border-sky-100 flex items-center justify-between">
-                  <span className="text-[10px] text-sky-700 font-medium">Click to copy & autofill:</span>
-                  <button
-                    type="button"
-                    onClick={() => handleCopyOtp(otpNotification.code)}
-                    className="px-2.5 py-1 bg-gradient-to-r from-[#F4511E] to-[#FF8A3D] hover:from-[#E5390B] hover:to-[#F4511E] text-white rounded-lg text-[11px] font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
-                  >
-                    {copiedOtp ? (
-                      <>
-                        <Check className="w-3 h-3" />
-                        <span>Copied!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3 h-3" />
-                        <span>Copy OTP</span>
-                      </>
-                    )}
-                  </button>
-                </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-black text-sky-950">eBuy-Partner SMS</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-bold border border-emerald-300">
+                  Official
+                </span>
               </div>
             </div>
-          )}
 
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={playOtpTune}
+                className="p-1 rounded-md bg-white border border-sky-200 text-[#F4511E] hover:bg-orange-50 text-[10px] font-bold flex items-center gap-1 cursor-pointer shadow-2xs"
+                title="Play SMS Tune"
+              >
+                <Volume2 className="w-3 h-3 text-[#F4511E]" />
+                <span>Tune</span>
+              </button>
+              <span className="text-[10px] text-sky-700 font-mono">{otpNotification.time}</span>
+            </div>
+          </div>
+
+          {/* Message Body */}
+          <div className="mt-2.5 bg-white rounded-xl border border-sky-200 p-3 text-left shadow-2xs">
+            <p className="text-xs text-sky-950 font-medium leading-relaxed">
+              Dear <strong className="text-[#F4511E]">{pendingUserData?.name || 'Partner'}</strong>, your OTP for eBuy-Partner is{' '}
+              <span className="font-mono font-black text-base text-[#F4511E] bg-[#FFF4ED] px-2 py-0.5 rounded-lg border border-[#FFD7C2] tracking-wider inline-block">
+                {otpNotification.code}
+              </span>
+              . Please do not share it with anyone.
+            </p>
+
+            {/* 1-Click Copy OTP Button */}
+            <div className="mt-2.5 pt-2 border-t border-sky-100 flex items-center justify-between">
+              <span className="text-[10px] text-sky-700 font-medium">Click to copy & autofill:</span>
+              <button
+                type="button"
+                onClick={() => handleCopyOtp(otpNotification.code)}
+                className="px-2.5 py-1 bg-gradient-to-r from-[#F4511E] to-[#FF8A3D] hover:from-[#E5390B] hover:to-[#F4511E] text-white rounded-lg text-[11px] font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
+              >
+                {copiedOtp ? (
+                  <>
+                    <Check className="w-3 h-3" />
+                    <span>Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3 h-3" />
+                    <span>Copy OTP</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. OTP VERIFICATION SCREEN (Clean form with input, resend timer & buttons) */}
+      {mode === 'otp_verify' && (
+        <form onSubmit={handleVerifyOtpSubmit} className="space-y-4">
           {/* Clean 5-digit OTP input box without redundant clutter */}
           <div>
             <label className="block text-xs font-bold text-[#171717] mb-1.5 text-center">
@@ -925,7 +926,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 setOtpInput(val);
                 if (errorMessage) setErrorMessage(null);
               }}
-              className="w-full py-2.5 text-center text-xl tracking-[0.5em] font-mono font-black rounded-xl border-2 border-emerald-500 bg-white text-[#171717] focus:ring-2 focus:ring-[#F4511E] focus:outline-none"
+              className="w-full py-3 text-center text-2xl tracking-[0.5em] font-mono font-black rounded-xl border-2 border-emerald-500 bg-white text-[#171717] focus:ring-2 focus:ring-[#F4511E] focus:outline-none"
             />
           </div>
 
@@ -934,12 +935,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <span className="text-gray-500 font-medium">
               Didn't receive code?
             </span>
-            {isOtpDispatching ? (
-              <span className="font-bold text-[#F4511E] text-[11px] flex items-center gap-1">
-                <RefreshCw className="w-3 h-3 animate-spin" />
-                <span>Sending SMS...</span>
-              </span>
-            ) : otpCountdown > 0 ? (
+            {otpCountdown > 0 ? (
               <span className="font-bold text-gray-500 font-mono bg-gray-100 px-2 py-0.5 rounded-md">
                 Resend in {otpCountdown}s
               </span>
@@ -965,7 +961,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           <button
             type="submit"
-            disabled={isSubmitting || isOtpDispatching || otpInput.length !== 5}
+            disabled={isSubmitting || otpInput.length !== 5}
             className="w-full py-2.5 bg-[#F4511E] hover:bg-[#E5390B] text-white rounded-xl font-bold text-xs transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
           >
             {isSubmitting ? (
