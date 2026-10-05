@@ -115,9 +115,19 @@ export async function syncUserToFirestore(user: any) {
     level: Number(user.level ?? 0),
     country: user.country || 'United States',
     countryCode: user.countryCode || 'US',
+    countryFlag: user.countryFlag || '🇺🇸',
+    city: user.city || 'New York',
     currency: 'USD',
+    currencySymbol: '$',
     referralCode: user.referralCode || '',
     referredBy: user.referredBy || null,
+    avatar: user.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+    creditScore: Number(user.creditScore ?? 100),
+    ipAddress: user.ipAddress || user.registrationIp || '104.28.192.44',
+    registrationIp: user.registrationIp || user.ipAddress || '104.28.192.44',
+    deviceInfo: user.deviceInfo || 'Chrome on Mobile',
+    emailVerified: true,
+    isRealClient: true,
     createdAt: user.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -127,6 +137,54 @@ export async function syncUserToFirestore(user: any) {
     console.log('✅ User synchronized to Firebase Firestore:', userId);
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, `users/${userId}`);
+  }
+}
+
+// Real-Time Listener for Firestore Users (Works across GitHub Pages & all worldwide devices)
+export function listenToFirestoreUsers(callback: (users: any[]) => void) {
+  try {
+    const usersCol = collection(db, 'users');
+    return onSnapshot(
+      usersCol,
+      (snapshot) => {
+        const usersList: any[] = [];
+        snapshot.forEach((d) => {
+          usersList.push(d.data());
+        });
+        callback(usersList);
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.LIST, 'users');
+      }
+    );
+  } catch (err) {
+    console.warn('Firestore users listener fallback:', err);
+    return () => {};
+  }
+}
+
+// Real-Time Listener for Firestore Wallets
+export function listenToFirestoreWallets(callback: (wallets: Record<string, any>) => void) {
+  try {
+    const walletsCol = collection(db, 'wallets');
+    return onSnapshot(
+      walletsCol,
+      (snapshot) => {
+        const walletsMap: Record<string, any> = {};
+        snapshot.forEach((d) => {
+          const data = d.data();
+          if (data && data.userId) {
+            walletsMap[data.userId] = data;
+          }
+        });
+        callback(walletsMap);
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.LIST, 'wallets');
+      }
+    );
+  } catch (err) {
+    return () => {};
   }
 }
 

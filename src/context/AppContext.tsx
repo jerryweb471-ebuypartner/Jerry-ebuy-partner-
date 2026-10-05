@@ -66,6 +66,8 @@ import {
   auth,
   syncUserToFirestore,
   syncWalletToFirestore,
+  listenToFirestoreUsers,
+  listenToFirestoreWallets,
   testFirestoreConnection,
   signOut as firebaseSignOut,
   sendPasswordResetEmail,
@@ -821,6 +823,78 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (eventSource) eventSource.close();
       if (channel) channel.close();
       window.removeEventListener('storage', handleStorageEvent);
+    };
+  }, [currentUser, currentViewState]);
+
+  // Global Real-Time Cloud Firestore Sync (Powers GitHub Pages, live previews, and cross-device sync)
+  useEffect(() => {
+    const unsubUsers = listenToFirestoreUsers((firestoreUsers) => {
+      if (firestoreUsers && firestoreUsers.length > 0) {
+        setUsers((prev) => {
+          const map = new Map<string, User>();
+          // Master Admin Jerry is always preserved
+          const adminUser = prev.find((u) => u.email === 'jerryhun47@gmail.com') || INITIAL_USERS[0];
+          map.set('jerryhun47@gmail.com', adminUser);
+
+          // Add Firestore users
+          for (const u of firestoreUsers) {
+            if (u && u.email) {
+              const emailLower = u.email.toLowerCase().trim();
+              if (emailLower !== 'jerryhun47@gmail.com') {
+                map.set(emailLower, {
+                  ...u,
+                  currency: 'USD',
+                  currencySymbol: '$',
+                  creditScore: u.creditScore ?? 100,
+                });
+              }
+            }
+          }
+
+          // Check if there are newly added users that were not in prev
+          const prevEmails = new Set(prev.map((u) => u.email.toLowerCase()));
+          const newlyAdded = firestoreUsers.filter((u) => u.email && !prevEmails.has(u.email.toLowerCase()) && u.email.toLowerCase() !== 'jerryhun47@gmail.com');
+
+          if (newlyAdded.length > 0) {
+            const isAdminActive = currentUser?.role === 'admin' || currentViewState === 'admin';
+            if (isAdminActive) {
+              playNewClientTune();
+              const latest = newlyAdded[0];
+              setToasts((tPrev) => [
+                {
+                  id: `toast-${Date.now()}`,
+                  message: `🎉 New Client Registered: ${latest.name} (${latest.email}) | IP: ${latest.ipAddress || '104.28.192.44'} | ${latest.countryFlag || '🌐'} ${latest.country || 'Global'}`,
+                  type: 'success',
+                },
+                ...tPrev,
+              ]);
+            }
+          }
+
+          const combined = Array.from(map.values());
+          try {
+            localStorage.setItem('ebuy_partner_users', JSON.stringify(combined));
+          } catch {}
+          return combined;
+        });
+      }
+    });
+
+    const unsubWallets = listenToFirestoreWallets((firestoreWallets) => {
+      if (firestoreWallets && Object.keys(firestoreWallets).length > 0) {
+        setWallets((prev) => {
+          const merged = { ...prev, ...firestoreWallets };
+          try {
+            localStorage.setItem('ebuy_partner_wallets', JSON.stringify(merged));
+          } catch {}
+          return merged;
+        });
+      }
+    });
+
+    return () => {
+      unsubUsers();
+      unsubWallets();
     };
   }, [currentUser, currentViewState]);
 
