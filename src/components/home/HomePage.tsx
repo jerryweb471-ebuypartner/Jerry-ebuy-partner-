@@ -81,6 +81,15 @@ export const HomePage: React.FC<HomePageProps> = ({
   const levelNum = currentUser?.level ?? 0;
   const isBasicTrial = levelNum === 0;
   const userPlans = getUserPlans();
+  const isPakistani = (currentUser?.countryCode || '').toUpperCase() === 'PK' || (currentUser?.country || '').toLowerCase().includes('pakistan');
+
+  const formatPlanPrice = (usd: number, pkr?: number) => {
+    if (isPakistani) {
+      const pkrVal = pkr !== undefined ? pkr : usd * 280;
+      return `₨ ${Number(pkrVal).toLocaleString()}`;
+    }
+    return formatCurrency(usd);
+  };
 
   // Rotate verified activity approximately every 4 seconds
   useEffect(() => {
@@ -361,17 +370,17 @@ export const HomePage: React.FC<HomePageProps> = ({
                       {plan.name}
                     </h3>
                     <p className="text-[11px] text-[#666666] mt-0.5">
-                      {plan.dailyProductTasks} Tasks/Day · +{formatCurrency(plan.earningPerProduct)}/product
+                      {plan.dailyProductTasks} Tasks/Day · +{formatPlanPrice(plan.earningPerProduct, plan.pkrEarningPerProduct)}/product
                     </p>
                   </div>
 
                   {/* Required Deposit */}
-                  <div className="p-3 rounded-xl bg-[#FFF8F4] border border-[#FFD7C2]">
+                  <div className={`p-3 rounded-xl border ${isPakistani ? 'bg-emerald-50/50 border-emerald-200' : 'bg-[#FFF8F4] border-[#FFD7C2]'}`}>
                     <span className="text-[10px] text-[#666666] font-semibold uppercase tracking-wider block">
-                      Required Deposit
+                      Required Deposit {isPakistani ? '(PKR)' : '(USD)'}
                     </span>
-                    <div className="text-xl font-black text-[#E5390B] font-mono mt-0.5">
-                      {formatCurrency(plan.requiredDeposit)}
+                    <div className={`text-xl font-black font-mono mt-0.5 ${isPakistani ? 'text-emerald-700' : 'text-[#E5390B]'}`}>
+                      {formatPlanPrice(plan.requiredDeposit, plan.pkrRequiredDeposit)}
                     </div>
                   </div>
 
@@ -379,7 +388,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   <div className="p-2 rounded-xl bg-emerald-50/80 border border-emerald-200 flex items-center justify-between text-xs">
                     <span className="text-[11px] font-bold text-emerald-900">Daily Return:</span>
                     <span className="font-black text-[#16A34A] font-mono">
-                      +{formatCurrency(plan.dailyTotalEarning)}
+                      +{formatPlanPrice(plan.dailyTotalEarning, plan.pkrDailyTotalEarning)}
                     </span>
                   </div>
 

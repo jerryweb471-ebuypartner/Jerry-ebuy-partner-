@@ -57,7 +57,6 @@ export const AdminUsers: React.FC = () => {
     userLevels,
     formatCurrency,
     showToast,
-    clearAllClients,
   } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -161,22 +160,9 @@ export const AdminUsers: React.FC = () => {
           </p>
         </div>
 
-        {/* Search, Filter & Purge All Clients */}
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            onClick={() => {
-              if (window.confirm('Are you sure you want to delete all client records? Only Master Admin Jerry will remain.')) {
-                clearAllClients();
-              }
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition-colors cursor-pointer"
-            title="Delete all client accounts and start fresh"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>Delete All Client Data</span>
-          </button>
-
-          <div className="relative w-full sm:w-60">
+        {/* Search & Status Filter */}
+        <div className="flex items-center gap-3">
+          <div className="relative w-full sm:w-64">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
             <input
               type="text"

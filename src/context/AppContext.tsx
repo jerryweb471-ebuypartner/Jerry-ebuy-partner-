@@ -66,8 +66,11 @@ import {
   auth,
   syncUserToFirestore,
   syncWalletToFirestore,
+  syncUserLevelsToFirestore,
   listenToFirestoreUsers,
   listenToFirestoreWallets,
+  listenToFirestoreUserLevels,
+  fetchInitialUsersFromFirestore,
   testFirestoreConnection,
   signOut as firebaseSignOut,
   sendPasswordResetEmail,
@@ -134,6 +137,9 @@ export interface LocalizedUserPlan {
   earningPerProduct: number;
   dailyTotalEarning: number;
   dailyProductTasks: number;
+  pkrRequiredDeposit?: number;
+  pkrEarningPerProduct?: number;
+  pkrDailyTotalEarning?: number;
 }
 
 interface AppContextType {
@@ -587,9 +593,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [currentUser]);
 
-  // Test connection to Firestore on initial boot (Skill constraint)
+  // Test connection and query cloud Firestore for initial users on startup
   useEffect(() => {
     testFirestoreConnection();
+
+    // Immediate initial fetch from Cloud Firestore (ensures newly opened tabs/devices get all users)
+    const loadInitialFirestoreUsers = async () => {
+      try {
+        const firestoreUsers = await fetchInitialUsersFromFirestore();
+        if (firestoreUsers && firestoreUsers.length > 0) {
+          setUsers((prev) => {
+            const map = new Map<string, User>();
+            const adminUser = prev.find((u) => u.email === 'jerryhun47@gmail.com') || INITIAL_USERS[0];
+            map.set('jerryhun47@gmail.com', adminUser);
+
+            for (const u of firestoreUsers) {
+              if (u && u.email && u.email.toLowerCase() !== 'jerryhun47@gmail.com') {
+                map.set(u.email.toLowerCase(), {
+                  ...u,
+                  currency: 'USD',
+                  currencySymbol: '$',
+                  creditScore: u.creditScore ?? 100,
+                });
+              }
+            }
+            const combined = Array.from(map.values());
+            try {
+              localStorage.setItem('ebuy_partner_users', JSON.stringify(combined));
+            } catch {}
+            return combined;
+          });
+        }
+      } catch (e) {
+        console.warn('Initial Firestore query note:', e);
+      }
+    };
+
+    loadInitialFirestoreUsers();
   }, []);
 
   useEffect(() => {
@@ -892,9 +932,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     });
 
+    const unsubLevels = listenToFirestoreUserLevels((firestoreLevels) => {
+      if (firestoreLevels && Array.isArray(firestoreLevels) && firestoreLevels.length > 0) {
+        setUserLevels(firestoreLevels);
+        try {
+          localStorage.setItem('ebuy_partner_levels', JSON.stringify(firestoreLevels));
+        } catch {}
+      }
+    });
+
     return () => {
       unsubUsers();
       unsubWallets();
+      unsubLevels();
     };
   }, [currentUser, currentViewState]);
 
@@ -1043,23 +1093,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return filtered.length > 0 ? filtered : verifiedActivities;
   }, [verifiedActivities, currentUser]);
 
-  // Master USD Plans
-  const userPlans: UserLevel[] = MASTER_PLANS_USD;
+  // Master Plans with dynamic Pakistan PKR localization
+  const userPlans: UserLevel[] = userLevels;
   const getUserPlans = useCallback((): LocalizedUserPlan[] => {
-    return userLevels.map((lvl) => ({
-      level: lvl.level,
-      name: lvl.name,
-      deposit: lvl.requiredDeposit,
-      per_product: lvl.earningPerProduct,
-      daily_potential: lvl.dailyTotalEarning,
-      products: lvl.dailyProductTasks,
-      benefits: lvl.benefits,
-      requiredDeposit: lvl.requiredDeposit,
-      earningPerProduct: lvl.earningPerProduct,
-      dailyTotalEarning: lvl.dailyTotalEarning,
-      dailyProductTasks: lvl.dailyProductTasks,
-    }));
-  }, [userLevels]);
+    const isPak = (currentUser?.countryCode || '').toUpperCase() === 'PK' || (currentUser?.country || '').toLowerCase() === 'pakistan';
+    return userLevels.map((lvl) => {
+      const deposit = isPak && lvl.pkrRequiredDeposit !== undefined ? lvl.pkrRequiredDeposit : lvl.requiredDeposit;
+      const perProduct = isPak && lvl.pkrEarningPerProduct !== undefined ? lvl.pkrEarningPerProduct : lvl.earningPerProduct;
+      const dailyTotal = isPak && lvl.pkrDailyTotalEarning !== undefined ? lvl.pkrDailyTotalEarning : lvl.dailyTotalEarning;
+
+      return {
+        level: lvl.level,
+        name: lvl.name,
+        deposit,
+        per_product: perProduct,
+        daily_potential: dailyTotal,
+        products: lvl.dailyProductTasks,
+        benefits: lvl.benefits,
+        requiredDeposit: deposit,
+        earningPerProduct: perProduct,
+        dailyTotalEarning: dailyTotal,
+        dailyProductTasks: lvl.dailyProductTasks,
+        pkrRequiredDeposit: lvl.pkrRequiredDeposit,
+        pkrEarningPerProduct: lvl.pkrEarningPerProduct,
+        pkrDailyTotalEarning: lvl.pkrDailyTotalEarning,
+      };
+    });
+  }, [userLevels, currentUser]);
 
   const currentLevelNum = currentUser?.level ?? 0;
   const currentUserPlan: UserLevel = useMemo(() => {
@@ -2068,10 +2128,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const saveUserLevel = (level: UserLevel) => {
-    setUserLevels((prev) =>
-      prev.map((l) => (l.level === level.level ? level : l))
-    );
-    showToast(`Tier Level ${level.level} ($ USD) configuration updated.`, 'success');
+    setUserLevels((prev) => {
+      const updated = prev.map((l) => (l.level === level.level ? level : l));
+      try {
+        localStorage.setItem('ebuy_partner_levels', JSON.stringify(updated));
+      } catch {}
+      syncUserLevelsToFirestore(updated).catch(() => {});
+      return updated;
+    });
+    showToast(`Tier Level ${level.level} (${level.name}) USD & PKR parameters updated successfully!`, 'success');
   };
 
   const updateUserStatus = (userId: string, status: User['status']) => {

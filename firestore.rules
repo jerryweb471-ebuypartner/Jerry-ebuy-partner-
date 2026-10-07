@@ -39,6 +39,29 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Platform Configuration & Tier Pricing
+    match /platform_config/{configId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Orders, Transactions, Deposits & Withdrawals
+    match /orders/{orderId} {
+      allow read, write: if true;
+    }
+
+    match /transactions/{txnId} {
+      allow read, write: if true;
+    }
+
+    match /deposits/{depId} {
+      allow read, write: if true;
+    }
+
+    match /withdrawals/{wdId} {
+      allow read, write: if true;
+    }
+
     // Admins Collection
     match /admins/{adminId} {
       allow read: if true;

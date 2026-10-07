@@ -257,16 +257,7 @@ export const AdminSettings: React.FC = () => {
           </label>
         </div>
 
-        <div className="pt-4 border-t border-[#E5E7EB] flex items-center justify-between">
-          <button
-            type="button"
-            onClick={resetDemoData}
-            className="px-3.5 py-2 text-xs font-bold text-rose-700 hover:bg-rose-50 border border-rose-200 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Reset Demo Seed</span>
-          </button>
-
+        <div className="pt-4 border-t border-[#E5E7EB] flex items-center justify-end">
           <button
             type="submit"
             className="px-5 py-2.5 text-xs font-black text-white bg-[#F4511E] hover:bg-[#E5390B] rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer hover:scale-[1.01]"

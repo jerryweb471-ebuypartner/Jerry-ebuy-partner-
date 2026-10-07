@@ -60,6 +60,10 @@ export interface UserLevel {
   products?: number;
   per_product?: number;
   daily_potential?: number;
+  // Pakistan Currency (PKR / Rs) Parameters
+  pkrRequiredDeposit?: number;
+  pkrEarningPerProduct?: number;
+  pkrDailyTotalEarning?: number;
 }
 
 export interface LocalizedUserPlan {
@@ -80,6 +84,9 @@ export interface LocalizedUserPlan {
   products?: number;
   per_product?: number;
   daily_potential?: number;
+  pkrRequiredDeposit?: number;
+  pkrEarningPerProduct?: number;
+  pkrDailyTotalEarning?: number;
 }
 
 export interface ProductTask {

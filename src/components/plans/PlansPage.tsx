@@ -30,6 +30,15 @@ export const PlansPage: React.FC<PlansPageProps> = ({ onOpenDepositForPlan }) =>
 
   const currentLevelNum = currentUser?.level ?? 0;
   const isBasicTrial = currentLevelNum === 0;
+  const isPakistani = (currentUser?.countryCode || '').toUpperCase() === 'PK' || (currentUser?.country || '').toLowerCase() === 'pakistan';
+
+  const formatPrice = (usd: number, pkr?: number) => {
+    if (isPakistani) {
+      const pkrVal = pkr !== undefined ? pkr : usd * 280;
+      return `₨ ${Number(pkrVal).toLocaleString()}`;
+    }
+    return formatCurrency(usd);
+  };
 
   const [selectedPlanLevel, setSelectedPlanLevel] = useState<number>(currentLevelNum === 0 ? 1 : currentLevelNum);
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -70,7 +79,7 @@ export const PlansPage: React.FC<PlansPageProps> = ({ onOpenDepositForPlan }) =>
         <div className="max-w-3xl relative z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FFF4ED] border border-[#FF8A3D]/40 text-[#F4511E] text-xs font-bold mb-3 shadow-2xs">
             <Sparkles className="w-4 h-4 text-[#F4511E]" />
-            <span>USD Membership Tier Architecture</span>
+            <span>{isPakistani ? '🇵🇰 Pakistan & USD Partner Tier Matrix' : 'USD Membership Tier Architecture'}</span>
           </div>
 
           <h1 className="text-2xl sm:text-4xl font-black text-[#171717] tracking-tight">
@@ -78,13 +87,15 @@ export const PlansPage: React.FC<PlansPageProps> = ({ onOpenDepositForPlan }) =>
           </h1>
 
           <p className="text-xs sm:text-sm text-[#666666] mt-2 leading-relaxed">
-            All tier prices, product earnings, and daily potential dividends operate exclusively in <strong>United States Dollars ($ USD)</strong> with automated Binance & Crypto settlement.
+            {isPakistani
+              ? 'Official verified promotional plans with security deposits, guaranteed per-product rewards, and instant Binance/EasyPaisa/JazzCash settlement in Pakistan (PKR / ₨) & USD.'
+              : 'All tier prices, product earnings, and daily potential dividends operate in USD ($) with automated Binance & Crypto settlement.'}
           </p>
 
           <div className="flex flex-wrap items-center gap-3 mt-5">
             <div className="px-3.5 py-1.5 rounded-xl bg-[#FFF8F4] border border-[#FF8A3D]/30 text-xs font-bold text-[#171717] flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-[#F4511E]" />
-              <span>Platform Currency: <strong>USD ($)</strong></span>
+              <span>Currency: <strong>{isPakistani ? 'Pakistan (PKR ₨) & USD ($)' : 'USD ($)'}</strong></span>
             </div>
 
             <div className="px-3.5 py-1.5 rounded-xl bg-white border border-[#E5E7EB] text-xs font-semibold text-[#171717] flex items-center gap-2">
@@ -118,7 +129,7 @@ export const PlansPage: React.FC<PlansPageProps> = ({ onOpenDepositForPlan }) =>
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-[#171717] mt-0.5">
-            Partner Membership Levels (USD)
+            Partner Membership Levels {isPakistani ? '(PKR / USD)' : '(USD)'}
           </h2>
           <p className="text-xs text-[#666666]">
             Transparent security deposit tiers with guaranteed per-task rewards and insured escrow refund guarantees:
@@ -155,6 +166,10 @@ export const PlansPage: React.FC<PlansPageProps> = ({ onOpenDepositForPlan }) =>
           const isCurrent = plan.level === currentLevelNum;
           const isSelected = plan.level === selectedPlanLevel;
           const isUserOwnedTrial = isPlan0 && isBasicTrial;
+
+          const depositFormatted = formatPrice(plan.requiredDeposit, plan.pkrRequiredDeposit);
+          const perProductFormatted = formatPrice(plan.earningPerProduct, plan.pkrEarningPerProduct);
+          const dailyTotalFormatted = formatPrice(plan.dailyTotalEarning, plan.pkrDailyTotalEarning);
 
           return (
             <div
@@ -222,13 +237,13 @@ export const PlansPage: React.FC<PlansPageProps> = ({ onOpenDepositForPlan }) =>
                   )}
                 </div>
 
-                {/* Pricing Box (Strictly USD - NO Master PKR) */}
-                <div className="p-3 rounded-xl bg-[#FFF8F4] border border-[#FFD7C2]">
+                {/* Pricing Box */}
+                <div className={`p-3 rounded-xl border ${isPakistani ? 'bg-emerald-50/60 border-emerald-200' : 'bg-[#FFF8F4] border-[#FFD7C2]'}`}>
                   <span className="text-[10px] text-[#666666] font-semibold uppercase tracking-wider block">
-                    {isPlan0 ? 'Trial Deposit' : 'Deposit Price'}
+                    {isPlan0 ? 'Trial Deposit' : isPakistani ? 'Deposit Price (PKR ₨)' : 'Deposit Price'}
                   </span>
-                  <div className="text-xl sm:text-2xl font-black text-[#E5390B] font-mono mt-0.5">
-                    {formatCurrency(plan.requiredDeposit)}
+                  <div className={`text-xl sm:text-2xl font-black font-mono mt-0.5 ${isPakistani ? 'text-emerald-800' : 'text-[#E5390B]'}`}>
+                    {depositFormatted}
                   </div>
                 </div>
 
@@ -243,7 +258,7 @@ export const PlansPage: React.FC<PlansPageProps> = ({ onOpenDepositForPlan }) =>
                   <div className="p-2 rounded-xl bg-gray-50 border border-[#E5E7EB]">
                     <span className="text-[10px] text-[#666666] block font-medium">Per Product</span>
                     <span className="text-xs font-extrabold text-[#16A34A] font-mono">
-                      +{formatCurrency(plan.earningPerProduct)}
+                      +{perProductFormatted}
                     </span>
                   </div>
                 </div>
@@ -254,7 +269,7 @@ export const PlansPage: React.FC<PlansPageProps> = ({ onOpenDepositForPlan }) =>
                     {isPlan0 ? 'Total Trial Reward:' : 'Daily Potential:'}
                   </span>
                   <span className="font-black text-[#16A34A] font-mono text-sm">
-                    +{formatCurrency(plan.dailyTotalEarning)}
+                    +{dailyTotalFormatted}
                   </span>
                 </div>
 

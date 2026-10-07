@@ -20,6 +20,7 @@ import {
   doc,
   setDoc,
   getDoc,
+  getDocs,
   collection,
   onSnapshot,
   updateDoc,
@@ -140,6 +141,22 @@ export async function syncUserToFirestore(user: any) {
   }
 }
 
+// Direct fetch for initial users on load (immediate load across new windows/browsers)
+export async function fetchInitialUsersFromFirestore(): Promise<any[]> {
+  try {
+    const usersCol = collection(db, 'users');
+    const snapshot = await getDocs(usersCol);
+    const list: any[] = [];
+    snapshot.forEach((d) => {
+      list.push(d.data());
+    });
+    return list;
+  } catch (err) {
+    console.warn('Error querying initial Firestore users:', err);
+    return [];
+  }
+}
+
 // Real-Time Listener for Firestore Users (Works across GitHub Pages & all worldwide devices)
 export function listenToFirestoreUsers(callback: (users: any[]) => void) {
   try {
@@ -207,6 +224,40 @@ export async function syncWalletToFirestore(wallet: any) {
     await setDoc(docRef, payload, { merge: true });
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, `wallets/${wallet.userId}`);
+  }
+}
+
+// User Levels / Tier Pricing Sync Helper to Firestore
+export async function syncUserLevelsToFirestore(levels: any[]) {
+  if (!levels || !Array.isArray(levels)) return;
+  const docRef = doc(db, 'platform_config', 'membership_tiers');
+  try {
+    await setDoc(docRef, { levels, updatedAt: new Date().toISOString() }, { merge: true });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, 'platform_config/membership_tiers');
+  }
+}
+
+// Real-Time Listener for Firestore User Levels / Tier Pricing
+export function listenToFirestoreUserLevels(callback: (levels: any[]) => void) {
+  try {
+    const docRef = doc(db, 'platform_config', 'membership_tiers');
+    return onSnapshot(
+      docRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          if (data && Array.isArray(data.levels) && data.levels.length > 0) {
+            callback(data.levels);
+          }
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'platform_config/membership_tiers');
+      }
+    );
+  } catch (err) {
+    return () => {};
   }
 }
 
